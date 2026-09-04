@@ -81,6 +81,30 @@ class TestAPIServer(unittest.TestCase):
             pong = websocket.receive_json()
             self.assertEqual(pong["type"], "pong")
 
+    def test_rag_index_and_query_endpoints(self):
+        # Index a document
+        doc_payload = {
+            "text": "The billing pipeline uses Stripe webhooks with cryptographic HMAC signature verification and idempotency keys.",
+            "source_name": "billing_spec.md"
+        }
+        res_idx = self.client.post("/api/rag/index", json=doc_payload)
+        self.assertEqual(res_idx.status_code, 200)
+        idx_data = res_idx.json()
+        self.assertEqual(idx_data["status"], "indexed")
+        self.assertGreaterEqual(idx_data["total_chunks"], 1)
+
+        # Query the indexed document
+        query_payload = {
+            "query": "How are Stripe webhooks verified and handled in billing?",
+            "top_k": 2
+        }
+        res_query = self.client.post("/api/rag/query", json=query_payload)
+        self.assertEqual(res_query.status_code, 200)
+        query_data = res_query.json()
+        self.assertTrue(query_data["grounded"])
+        self.assertGreaterEqual(len(query_data["citations"]), 1)
+        self.assertEqual(query_data["citations"][0]["file"], "billing_spec.md")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 from src.config import Config
 from src.stt_service import STTService
 from src.knowledge_db import CuratedKnowledgeDB
+from src.rag_engine import LocalRAGEngine
 from src.model_router import ModelRouter
 from src.council_engine import CouncilEngine, COUNCIL_PRESETS
 
@@ -31,16 +32,18 @@ ACTIVE_SESSIONS: Dict[str, Dict[str, Any]] = {}
 knowledge_db: Optional[CuratedKnowledgeDB] = None
 stt_service: Optional[STTService] = None
 council_engine: Optional[CouncilEngine] = None
+rag_engine: Optional[LocalRAGEngine] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan context manager for startup and shutdown."""
-    global knowledge_db, stt_service, council_engine
+    global knowledge_db, stt_service, council_engine, rag_engine
     logger.info("Initializing Vo-Gen-Flow API Gateway services...")
     knowledge_db = CuratedKnowledgeDB()
     stt_service = STTService()
-    council_engine = CouncilEngine(knowledge_db=knowledge_db)
+    rag_engine = LocalRAGEngine()
+    council_engine = CouncilEngine(knowledge_db=knowledge_db, rag_engine=rag_engine)
     logger.info("Services initialized. Ready to receive requests.")
     yield
     logger.info("Shutting down Vo-Gen-Flow API Gateway...")
@@ -81,6 +84,17 @@ class DeliberateRequest(BaseModel):
 class KnowledgeSearchRequest(BaseModel):
     query: str = Field(..., min_length=2)
     top_k: int = Field(default=3, ge=1, le=10)
+
+
+class RAGIndexRequest(BaseModel):
+    text: str = Field(..., min_length=10, description="Code or documentation to index")
+    source_name: str = Field(default="custom_document.md", description="Document label")
+
+
+class RAGQueryRequest(BaseModel):
+    query: str = Field(..., min_length=2, description="Question to ask against indexed knowledge base")
+    top_k: int = Field(default=3, ge=1, le=10)
+    byok_key: Optional[str] = Field(default=None, description="Optional BYOK Groq API key")
 
 
 # --- REST Endpoints ---
@@ -180,6 +194,39 @@ async def search_knowledge(req: KnowledgeSearchRequest):
         knowledge_db = CuratedKnowledgeDB()
     matches = knowledge_db.search(req.query, top_k=req.top_k)
     return {"query": req.query, "matches": matches}
+
+
+@app.post("/api/rag/index", tags=["RAG"])
+async def index_rag_document(req: RAGIndexRequest):
+    """Index text or code into the embedded RAG engine with guardrail sanitization."""
+    global rag_engine
+    if not rag_engine:
+        rag_engine = LocalRAGEngine()
+    rag_engine.index_text(req.text, source_name=req.source_name)
+    return {
+        "status": "indexed",
+        "source_name": req.source_name,
+        "total_chunks": len(rag_engine.chunks),
+        "guardrail_telemetry": {
+            "blocked_sensitive_files": rag_engine.blocked_sensitive_files,
+            "sanitized_injections": rag_engine.sanitized_injections_count
+        }
+    }
+
+
+@app.post("/api/rag/query", tags=["RAG"])
+async def query_rag_document(req: RAGQueryRequest):
+    """Query indexed documents with zero-hallucination guardrails and source citations."""
+    global rag_engine
+    if not rag_engine:
+        rag_engine = LocalRAGEngine()
+
+    router = None
+    if req.byok_key and req.byok_key.strip():
+        router = ModelRouter(api_key=req.byok_key.strip())
+
+    result = rag_engine.query_document(req.query, top_k=req.top_k, model_router=router)
+    return result
 
 
 @app.get("/api/sessions/{session_id}", tags=["Sessions"])
