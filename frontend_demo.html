@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vo-Gen-Flow // Autonomous Engineering Platform</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --font-serif: 'Instrument Serif', Georgia, serif;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --bg-gradient: radial-gradient(circle at 50% 12%, #09173a 0%, #030816 45%, #010308 100%);
+      --accent-glow: #38bdf8;
+    }
+
+    .theme-amber {
+      --bg-gradient: radial-gradient(circle at 50% 12%, #2d1405 0%, #100601 45%, #030100 100%);
+      --accent-glow: #fb923c;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-gradient);
+      color: #e2e8f0;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      letter-spacing: -0.015em;
+    }
+
+    .font-serif-luxury { font-family: var(--font-serif); }
+    .font-mono-telemetry { font-family: var(--font-mono); letter-spacing: 0.05em; }
+
+    /* Luxury Monolith Bezel & Glass Surfaces */
+    .monolith-bezel {
+      background: rgba(6, 11, 24, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+        0 30px 60px -15px rgba(0, 0, 0, 0.95);
+      backdrop-filter: blur(24px);
+    }
+
+    .monolith-card {
+      background: rgba(10, 17, 34, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(16px);
+    }
+
+    .monolith-node {
+      background: linear-gradient(180deg, rgba(16, 26, 48, 0.9) 0%, rgba(8, 14, 28, 0.95) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+        0 0 16px -4px rgba(56, 189, 248, 0.25);
+    }
+
+    .milled-dock {
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 35%, #020617 100%);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.28),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.9),
+        0 25px 50px -10px rgba(0, 0, 0, 0.95),
+        0 0 35px rgba(56, 189, 248, 0.18);
+    }
+
+    .jewel-slit {
+      box-shadow: 0 0 12px #38bdf8, 0 0 4px #10b981;
+    }
+
+    .wire-glow {
+      stroke: #38bdf8;
+      stroke-width: 1.5;
+      stroke-dasharray: 6 3;
+      animation: wirePulse 18s linear infinite;
+      filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.6));
+    }
+
+    @keyframes wirePulse {
+      to { stroke-dashoffset: -100; }
+    }
+
+    .seat-station {
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .seat-station:hover {
+      transform: scale(1.08) translateY(-2px);
+      filter: drop-shadow(0 0 14px currentColor);
+    }
+
+    .tab-active {
+      color: #ffffff;
+      border-bottom: 2px solid #38bdf8;
+    }
+  </style>
+</head>
+<body id="appBody" class="p-3 md:p-6 flex flex-col justify-between">
+
+  <!-- ========================================================================= -->
+  <!-- GLOBAL HEADER (Present Across All Views)                                  -->
+  <!-- ========================================================================= -->
+  <header class="monolith-bezel w-full max-w-[1600px] mx-auto rounded-2xl h-16 px-6 flex items-center justify-between z-30 mb-4">
+    <div class="flex items-center space-x-8">
+      
+      <!-- Bespoke Vo-Gen-Flow Geometric Logo -->
+      <div onclick="switchView('landing')" class="flex items-center space-x-3 cursor-pointer group">
+        <svg class="w-6 h-6 transition-transform group-hover:scale-105" viewBox="0 0 32 32" fill="none">
+          <path d="M4 8L16 26L28 8" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M9 8L16 20L23 8" stroke="#818CF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.8" />
+          <circle cx="16" cy="8" r="2.5" fill="#38BDF8" />
+          <circle cx="9" cy="8" r="1.5" fill="#818CF8" />
+          <circle cx="23" cy="8" r="1.5" fill="#818CF8" />
+        </svg>
+        <span class="text-xs font-mono-telemetry tracking-[0.25em] text-white font-semibold uppercase">VO-GEN-FLOW</span>
+      </div>
+
+      <div class="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
+
+      <!-- Navigation Router -->
+      <nav class="hidden md:flex items-center space-x-6 text-[11px] font-mono-telemetry uppercase tracking-wider text-slate-400">
+        <button id="nav-landing" onclick="switchView('landing')" class="hover:text-white transition-colors pb-1">LANDING</button>
+        <button id="nav-studio" onclick="switchView('studio')" class="tab-active hover:text-white transition-colors pb-1">STUDIO</button>
+        <button id="nav-specs" onclick="switchView('specs')" class="hover:text-white transition-colors pb-1">DOCUMENTS</button>
+        <button onclick="toggleCouncilModal()" class="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1.5 transition-colors pb-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+          <span>COUNCIL</span>
+        </button>
+        <button id="nav-settings" onclick="switchView('settings')" class="hover:text-white transition-colors pb-1">SETTINGS</button>
+      </nav>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="flex items-center space-x-4">
+      <div class="hidden lg:flex items-center space-x-2 text-[10px] font-mono-telemetry bg-black/50 px-3 py-1.5 rounded-lg border border-white/5 text-slate-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        <span>GROQ LPU: 312MS</span>
+        <span class="text-slate-600">|</span>
+        <span class="text-cyan-400">BYOK VAULT ACTIVE</span>
+      </div>
+
+      <button onclick="toggleCouncilModal()" class="px-3.5 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-xs font-mono-telemetry text-white transition-all flex items-center space-x-2 shadow-sm">
+        <span>CONVENE COUNCIL</span>
+        <kbd class="text-[9px] text-slate-400 bg-black/40 px-1 py-0.5 rounded">[C]</kbd>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- VIEW 1: LANDING PAGE (Luxury Brutalist Public Showcase)                    -->
+  <!-- ========================================================================= -->
+  <div id="view-landing" class="view-panel max-w-[1600px] mx-auto w-full space-y-12 pb-24 hidden">
+    
+    <!-- Hero Section -->
+    <section class="monolith-bezel rounded-2xl p-8 md:p-16 text-center relative overflow-hidden">
+      <div class="max-w-3xl mx-auto space-y-6 z-10 relative">
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-mono-telemetry text-cyan-300 uppercase">
+          <span>REDUCTIONIST MULTIMODAL ARCHITECTURE ENGINE</span>
+        </div>
+        <h1 class="text-4xl md:text-6xl font-normal tracking-tight text-white">
+          Speak to Architect. <br>
+          <span class="font-serif-luxury italic text-cyan-300 font-light">Speak to Ship.</span>
+        </h1>
+        <p class="text-slate-300 text-sm md:text-base font-light max-w-2xl mx-auto leading-relaxed">
+          Vo-Gen-Flow translates unstructured spoken brainstorming, meeting debates, and voice memos into production-ready specifications, C4 Mermaid topologies, and zero-shot executable pull requests.
+        </p>
+        <div class="pt-4 flex flex-wrap justify-center gap-4">
+          <button onclick="switchView('studio')" class="px-6 py-3 rounded-xl bg-white text-black font-semibold text-xs font-mono-telemetry tracking-wider uppercase hover:bg-slate-200 transition-all shadow-[0_0_30px_rgba(255,255,255,0.25)]">
+            Launch Engineering Studio
+          </button>
+          <button onclick="switchView('specs')" class="px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono-telemetry tracking-wider uppercase text-white transition-all">
+            Review Generated Specs
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3-Pillar Comparison Matrix -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="monolith-card rounded-2xl p-6 space-y-3">
+        <div class="text-[10px] font-mono-telemetry text-cyan-400 uppercase tracking-wider">PILLAR 01 // ACOUSTIC LPU SPEED</div>
+        <h3 class="text-lg text-white font-medium">Sub-400ms Transcription</h3>
+        <p class="text-xs text-slate-400 font-light leading-relaxed">
+          Powered by Groq Whisper LPUs with 16kHz PCM ring buffers. Processes 60 seconds of complex engineering speech in 312ms with zero client GPU overhead.
+        </p>
+      </div>
+
+      <div class="monolith-card rounded-2xl p-6 space-y-3">
+        <div class="text-[10px] font-mono-telemetry text-emerald-400 uppercase tracking-wider">PILLAR 02 // DETERMINISTIC GROUNDING</div>
+        <h3 class="text-lg text-white font-medium">Dual-Layer Okapi BM25 RAG</h3>
+        <p class="text-xs text-slate-400 font-light leading-relaxed">
+          Eliminates vector embedding hallucination. Performs exact symbol matching across local codebase ASTs and curated PostgreSQL/Shadcn architectural catalogs.
+        </p>
+      </div>
+
+      <div class="monolith-card rounded-2xl p-6 space-y-3">
+        <div class="text-[10px] font-mono-telemetry text-indigo-400 uppercase tracking-wider">PILLAR 03 // MULTI-AGENT COUNCIL</div>
+        <h3 class="text-lg text-white font-medium">Task-Specific Model Routing</h3>
+        <p class="text-xs text-slate-400 font-light leading-relaxed">
+          Routes high-level strategy to 120B reasoning models and syntax-critical DDL/Mermaid to Qwen 3.6. Operates on a 100% gross margin BYOK model.
+        </p>
+      </div>
+    </section>
+
+    <!-- BYOK ROI Calculator -->
+    <section class="monolith-bezel rounded-2xl p-8 space-y-6">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-white/[0.06] pb-4">
+        <div>
+          <div class="text-[10px] font-mono-telemetry text-slate-400 uppercase tracking-widest">UNIT ECONOMICS CALCULATOR</div>
+          <h2 class="text-xl text-white font-medium">The 99.1% Gross Margin BYOK Advantage</h2>
+        </div>
+        <span class="text-xs font-mono-telemetry text-emerald-400 mt-2 md:mt-0">ZERO INFERENCE SERVER LIABILITY</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-center font-mono-telemetry">
+        <div class="p-4 bg-black/40 rounded-xl border border-white/5">
+          <div class="text-slate-400 text-xs uppercase">Active Users</div>
+          <div class="text-2xl text-white font-light mt-1">10,000</div>
+        </div>
+        <div class="p-4 bg-black/40 rounded-xl border border-white/5">
+          <div class="text-slate-400 text-xs uppercase">Your Monthly COGS</div>
+          <div class="text-2xl text-emerald-400 font-light mt-1">$0.00</div>
+          <div class="text-[9px] text-slate-500 mt-0.5">User Bring Own Keys</div>
+        </div>
+        <div class="p-4 bg-black/40 rounded-xl border border-white/5">
+          <div class="text-slate-400 text-xs uppercase">Software Subscription</div>
+          <div class="text-2xl text-white font-light mt-1">$25 / mo</div>
+        </div>
+        <div class="p-4 bg-black/40 rounded-xl border border-white/5">
+          <div class="text-slate-400 text-xs uppercase">Projected ARR</div>
+          <div class="text-2xl text-cyan-300 font-light mt-1">$3,000,000</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- VIEW 2: MONOLITH ENGINEERING STUDIO (Exact 1:1 Reference Replication)      -->
+  <!-- ========================================================================= -->
+  <div id="view-studio" class="view-panel monolith-bezel w-full max-w-[1600px] mx-auto rounded-2xl flex flex-col h-[82vh] overflow-hidden relative">
+
+    <div class="flex-1 grid grid-cols-12 overflow-hidden relative">
+
+      <!-- Column 1: Interface & Project Directory (2.5 Cols) -->
+      <aside class="col-span-12 lg:col-span-2 border-r border-white/[0.06] p-4 bg-black/25 flex flex-col justify-between">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between text-[11px] font-mono-telemetry uppercase text-slate-400">
+            <span>DIRECTORY</span>
+            <button onclick="alert('Create new project dialog initialized.')" class="hover:text-white">+</button>
+          </div>
+
+          <div class="relative">
+            <input type="text" placeholder="Search schemas..." class="w-full bg-black/50 border border-white/10 rounded px-2.5 py-1.5 text-xs text-slate-300 placeholder-slate-600 font-mono-telemetry focus:outline-none focus:border-cyan-400" />
+          </div>
+
+          <div class="space-y-2 pt-2">
+            <div class="p-3 rounded bg-white/[0.04] border border-cyan-500/30 text-xs font-mono-telemetry space-y-1">
+              <div class="text-[9px] text-cyan-400 font-bold uppercase">ACTIVE PROJECT</div>
+              <div class="text-white font-medium text-sm">Project Obsidian</div>
+              <div class="text-[10px] text-slate-400 pt-1">ID: VGF-412</div>
+              <div class="text-[10px] text-slate-400">RATE: 16kHz PCM</div>
+              <div class="text-[10px] text-emerald-400">TYPE: Dual-RAG Synthesis</div>
+            </div>
+
+            <div onclick="switchProject('Aethergrid Core')" class="p-3 rounded bg-transparent hover:bg-white/[0.02] border border-white/5 text-xs font-mono-telemetry space-y-1 text-slate-500 cursor-pointer">
+              <div class="text-slate-300 font-medium">Aethergrid Core</div>
+              <div class="text-[10px]">ID: VGF-398 // 48kHz</div>
+            </div>
+
+            <div onclick="switchProject('Chronos One')" class="p-3 rounded bg-transparent hover:bg-white/[0.02] border border-white/5 text-xs font-mono-telemetry space-y-1 text-slate-500 cursor-pointer">
+              <div class="text-slate-300 font-medium">Chronos One</div>
+              <div class="text-[10px]">ID: VGF-350 // REST API</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-[10px] font-mono-telemetry text-slate-600 pt-4 border-t border-white/[0.06]">
+          STORAGE: SQLITE LOCAL<br>
+          AUTH: BYOK VAULT (ENCRYPTED)
+        </div>
+      </aside>
+
+      <!-- Column 2: Central C4 Graph Studio & Callable Council Modal (7 Cols) -->
+      <main class="col-span-12 lg:col-span-7 p-6 overflow-hidden relative flex flex-col justify-between">
+        
+        <div class="flex items-center justify-between z-10">
+          <div>
+            <div class="text-[10px] font-mono-telemetry uppercase text-slate-400 tracking-wider">ENGINEERING STUDIO</div>
+            <h2 id="studioProjectTitle" class="text-lg font-medium text-white">Project Obsidian <span class="text-xs text-slate-500 font-mono-telemetry">// C4 TOPOLOGY VGF-89</span></h2>
+          </div>
+          <div class="flex items-center space-x-2 text-xs font-mono-telemetry">
+            <button onclick="switchView('specs')" class="px-2.5 py-1 rounded bg-white/[0.04] border border-white/10 text-slate-300 hover:text-white">View Full PRD</button>
+            <button onclick="toggleCouncilModal()" class="px-3 py-1 rounded bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-medium">+ Convene</button>
+          </div>
+        </div>
+
+        <!-- Interactive C4 Node Graph & Animated Wire Conduit -->
+        <div class="relative w-full h-full flex items-center justify-center">
+          
+          <svg class="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 120 180 C 220 180, 220 180, 320 180" class="wire-glow" />
+            <path d="M 120 280 C 220 280, 220 230, 320 230" class="wire-glow" style="animation-delay: 2s;" />
+            <path d="M 440 180 C 500 180, 520 140, 580 140" class="wire-glow" style="animation-delay: 1s;" />
+            <path d="M 440 230 C 500 230, 520 260, 580 260" class="wire-glow" style="animation-delay: 3s;" />
+            <path d="M 700 140 C 750 140, 770 200, 820 200" class="wire-glow" style="animation-delay: 1.5s;" />
+            <path d="M 700 260 C 750 260, 770 200, 820 200" class="wire-glow" style="animation-delay: 2.5s;" />
+          </svg>
+
+          <div class="relative z-10 w-full flex justify-between items-center px-6">
+            
+            <div class="space-y-16">
+              <div onclick="inspectNode('Input Node', 'Acoustic PCM 16kHz Stream buffer.')" class="monolith-node rounded-lg px-4 py-3 text-center min-w-[110px] cursor-pointer hover:border-cyan-300">
+                <div class="text-[9px] font-mono-telemetry text-cyan-400">STREAM</div>
+                <div class="text-xs font-semibold text-white">Input Node</div>
+              </div>
+              <div onclick="inspectNode('Target Repo', 'AST chunked Python/TypeScript directory.')" class="monolith-node rounded-lg px-4 py-3 text-center min-w-[110px] cursor-pointer hover:border-cyan-300">
+                <div class="text-[9px] font-mono-telemetry text-slate-400">INGESTION</div>
+                <div class="text-xs font-semibold text-white">Target Repo</div>
+              </div>
+            </div>
+
+            <div class="space-y-6">
+              <div onclick="inspectNode('Whisper v3-Turbo', 'Groq LPU Hardware Acceleration.')" class="monolith-node rounded-lg px-5 py-3.5 text-center min-w-[130px] cursor-pointer hover:border-emerald-300">
+                <div class="text-[9px] font-mono-telemetry text-emerald-400">GROQ LPU</div>
+                <div class="text-xs font-semibold text-white">Whisper v3-Turbo</div>
+              </div>
+              <div onclick="inspectNode('Okapi BM25', 'In-memory inverted token index.')" class="monolith-node rounded-lg px-5 py-3.5 text-center min-w-[130px] cursor-pointer hover:border-indigo-300">
+                <div class="text-[9px] font-mono-telemetry text-indigo-400">IN-MEMORY</div>
+                <div class="text-xs font-semibold text-white">Okapi BM25 Index</div>
+              </div>
+            </div>
+
+            <div class="space-y-16">
+              <div onclick="inspectNode('Synthesis Engine', 'Multi-model router (120B + Qwen 3.6).')" class="monolith-node rounded-lg px-5 py-3.5 text-center min-w-[130px] border-cyan-400 cursor-pointer">
+                <div class="text-[9px] font-mono-telemetry text-cyan-300">MOE ROUTER</div>
+                <div class="text-xs font-semibold text-white">Synthesis Engine</div>
+              </div>
+              <div onclick="inspectNode('Delta Refiner', 'Selective voice diff reconciler.')" class="monolith-node rounded-lg px-5 py-3.5 text-center min-w-[130px] cursor-pointer">
+                <div class="text-[9px] font-mono-telemetry text-purple-400">DIFF ENGINE</div>
+                <div class="text-xs font-semibold text-white">Delta Refiner</div>
+              </div>
+            </div>
+
+            <div class="space-y-6">
+              <div onclick="inspectNode('Output Buffer', 'Master Execution Bundle (Zero-Shot IR).')" class="monolith-node rounded-lg px-4 py-3 text-center min-w-[110px] cursor-pointer">
+                <div class="text-[9px] font-mono-telemetry text-slate-400">ZERO-SHOT IR</div>
+                <div class="text-xs font-semibold text-white">Output Buffer</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- THE CALLABLE COUNCIL CHAMBER MODAL (Hovering Center) -->
+          <div id="councilModalCard" class="absolute inset-0 m-auto w-[92%] max-w-[580px] h-[390px] rounded-2xl monolith-bezel p-6 z-20 flex flex-col justify-between border border-cyan-400/30 shadow-[0_0_60px_rgba(0,0,0,0.95)]">
+            <div class="flex items-center justify-between border-b border-white/[0.06] pb-3">
+              <div class="flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                <span class="text-[10px] font-mono-telemetry tracking-widest text-white uppercase">COUNCIL CHAMBER // MULTI-AGENT PROTOCOL</span>
+              </div>
+              <button onclick="toggleCouncilModal()" class="text-slate-400 hover:text-white text-xs font-mono-telemetry">[ESC]</button>
+            </div>
+
+            <!-- 3D Circular Deliberation Table -->
+            <div class="relative w-full h-[220px] flex items-center justify-center">
+              <div class="absolute w-72 h-36 rounded-[100%] border border-cyan-500/20 bg-gradient-to-b from-cyan-950/30 to-black/60 shadow-[inset_0_0_20px_rgba(56,189,248,0.15)]"></div>
+              <div class="absolute w-52 h-24 rounded-[100%] border border-indigo-500/20"></div>
+
+              <div class="text-center z-10">
+                <div class="text-sm font-semibold text-white tracking-wide">COUNCIL CHAMBER</div>
+                <div class="text-[11px] font-serif-luxury italic text-slate-400">Specialized AI Deliberation</div>
+                <div id="councilStatusText" class="text-[9px] font-mono-telemetry text-cyan-400 mt-1">STATUS: ANALYZING FLOW VGF-89</div>
+              </div>
+
+              <!-- Seat 1: Strategist -->
+              <div onclick="selectSeat('Strategist', 'openai/gpt-oss-120b', 'PRD & Personas')" class="seat-station absolute -top-1 text-center cursor-pointer" style="color: #10B981;">
+                <div class="w-9 h-9 rounded-full bg-slate-900 border-2 border-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_12px_#10b981]">
+                  <span class="text-[10px] font-mono-telemetry font-bold text-white">STR</span>
+                </div>
+                <span class="text-[9px] font-mono-telemetry text-slate-300 block mt-1">Strategist</span>
+                <span class="text-[8px] font-mono-telemetry text-emerald-400">120B</span>
+              </div>
+
+              <!-- Seat 2: Architect -->
+              <div onclick="selectSeat('Architect', 'qwen/qwen3.6-27b', 'PostgreSQL DDL & Mermaid')" class="seat-station absolute right-4 top-16 text-center cursor-pointer" style="color: #F59E0B;">
+                <div class="w-9 h-9 rounded-full bg-slate-900 border-2 border-amber-400 flex items-center justify-center mx-auto shadow-[0_0_12px_#f59e0b]">
+                  <span class="text-[10px] font-mono-telemetry font-bold text-white">ARC</span>
+                </div>
+                <span class="text-[9px] font-mono-telemetry text-slate-300 block mt-1">Architect</span>
+                <span class="text-[8px] font-mono-telemetry text-amber-400">Qwen 3.6</span>
+              </div>
+
+              <!-- Seat 3: Curator -->
+              <div onclick="selectSeat('Curator', 'In-Memory BM25', 'Codebase Token Retrieval')" class="seat-station absolute right-16 bottom-0 text-center cursor-pointer" style="color: #38BDF8;">
+                <div class="w-9 h-9 rounded-full bg-slate-900 border-2 border-cyan-400 flex items-center justify-center mx-auto shadow-[0_0_12px_#38bdf8]">
+                  <span class="text-[10px] font-mono-telemetry font-bold text-white">CUR</span>
+                </div>
+                <span class="text-[9px] font-mono-telemetry text-slate-300 block mt-1">Curator</span>
+                <span class="text-[8px] font-mono-telemetry text-cyan-400">BM25</span>
+              </div>
+
+              <!-- Seat 4: Linguist -->
+              <div onclick="selectSeat('Linguist', 'whisper-large-v3-turbo', 'Audio Ingestion & Diarization')" class="seat-station absolute left-16 bottom-0 text-center cursor-pointer" style="color: #C084FC;">
+                <div class="w-9 h-9 rounded-full bg-slate-900 border-2 border-purple-400 flex items-center justify-center mx-auto shadow-[0_0_12px_#c084fc]">
+                  <span class="text-[10px] font-mono-telemetry font-bold text-white">LIN</span>
+                </div>
+                <span class="text-[9px] font-mono-telemetry text-slate-300 block mt-1">Linguist</span>
+                <span class="text-[8px] font-mono-telemetry text-purple-400">Whisper</span>
+              </div>
+
+              <!-- Seat 5: The Elder -->
+              <div onclick="selectSeat('The Elder', 'Consensus Engine', 'Dialectic Reconciliation')" class="seat-station absolute left-4 top-16 text-center cursor-pointer" style="color: #06B6D4;">
+                <div class="w-9 h-9 rounded-full bg-slate-900 border-2 border-cyan-300 flex items-center justify-center mx-auto shadow-[0_0_12px_#06b6d4]">
+                  <span class="text-[10px] font-mono-telemetry font-bold text-white">ELD</span>
+                </div>
+                <span class="text-[9px] font-mono-telemetry text-slate-300 block mt-1">The Elder</span>
+                <span class="text-[8px] font-mono-telemetry text-cyan-300">Consensus</span>
+              </div>
+
+            </div>
+
+            <div class="flex items-center justify-between border-t border-white/[0.06] pt-3 text-xs font-mono-telemetry">
+              <span id="selectedSeatDetail" class="text-slate-400 text-[10px]">CLICK A SEAT TO INSPECT ASSIGNMENT</span>
+              <button onclick="confirmCouncilRun()" class="px-3 py-1.5 rounded bg-white text-black font-semibold text-[11px] hover:bg-slate-200 transition-all">
+                SYNTHESIZE SPECIFICATIONS
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="text-[10px] font-mono-telemetry text-slate-500 flex justify-between z-10 border-t border-white/[0.06] pt-2">
+          <span>COGNITIVE FLOW: CONTINUOUS</span>
+          <span>LATENCY BUDGET: 2000MS</span>
+        </div>
+      </main>
+
+      <!-- Column 3: Workflow Pipeline & Telemetry Logs (2.5 Cols) -->
+      <aside class="col-span-12 lg:col-span-3 border-l border-white/[0.06] p-4 bg-black/25 flex flex-col justify-between">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between text-[11px] font-mono-telemetry uppercase text-slate-400">
+            <span>WORKFLOW PIPELINE</span>
+            <span class="text-[10px] text-cyan-400 font-mono-telemetry">RUNNING</span>
+          </div>
+
+          <div class="space-y-2 text-xs font-mono-telemetry">
+            <div class="p-2.5 rounded bg-black/40 border border-white/[0.06] space-y-1.5">
+              <div class="flex justify-between text-[10px]">
+                <span class="text-slate-400">State Name:</span>
+                <span class="text-white">Evaluating Flow VGF-89</span>
+              </div>
+              <div class="flex justify-between text-[10px]">
+                <span class="text-slate-400">Resolution Type:</span>
+                <span class="text-slate-200">Hegelian Consensus</span>
+              </div>
+              <div class="flex justify-between text-[10px]">
+                <span class="text-slate-400">Project Mode:</span>
+                <span class="text-cyan-400">S00 / High-Throughput</span>
+              </div>
+              <div class="flex justify-between text-[10px]">
+                <span class="text-slate-400">Process Type:</span>
+                <span class="text-emerald-400">Task-Based Routing</span>
+              </div>
+            </div>
+
+            <div class="p-2.5 rounded bg-black/40 border border-white/[0.06] space-y-2">
+              <div class="flex justify-between text-[10px] text-slate-400">
+                <span>States Completed</span>
+                <span class="text-cyan-300">100%</span>
+              </div>
+              <div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                <div class="bg-cyan-400 h-full w-full"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-1 pt-2">
+            <div class="text-[10px] font-mono-telemetry uppercase text-slate-400">PROJECT LOG</div>
+            <div id="projectLogContainer" class="p-2.5 rounded bg-black/60 border border-white/[0.06] font-mono-telemetry text-[9px] text-slate-400 space-y-1.5 max-h-40 overflow-y-auto">
+              <div><span class="text-slate-500">10:33:06 AM</span> Project Obsidian initialized.</div>
+              <div><span class="text-slate-500">10:33:27 AM</span> Audio buffer decoded at 16kHz.</div>
+              <div><span class="text-slate-500">10:33:30 AM</span> Whisper LPU completed in 312ms.</div>
+              <div><span class="text-slate-500">10:33:31 AM</span> BM25 AST RAG matched 14 chunks.</div>
+              <div><span class="text-emerald-400">10:33:33 AM</span> Council Quorum approved PRD.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/[0.06] flex space-x-2">
+          <button onclick="exportGit()" class="flex-1 py-2 rounded bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-mono-telemetry text-white transition-all text-center">
+            EXPORT GIT
+          </button>
+          <button onclick="exportPDF()" class="flex-1 py-2 rounded bg-cyan-600 hover:bg-cyan-500 text-xs font-mono-telemetry text-white font-medium transition-all text-center shadow-[0_0_15px_rgba(56,189,248,0.3)]">
+            EXPORT PDF
+          </button>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- VIEW 3: SPECIFICATION & DOCUMENT STUDIO (PRD / Code / Tasks)             -->
+  <!-- ========================================================================= -->
+  <div id="view-specs" class="view-panel max-w-[1600px] mx-auto w-full space-y-6 pb-24 hidden">
+    <div class="monolith-bezel rounded-2xl p-6 md:p-8 space-y-6">
+      
+      <!-- Doc Header Tabs -->
+      <div class="flex flex-wrap items-center justify-between border-b border-white/[0.08] pb-4 gap-4">
+        <div>
+          <div class="text-[10px] font-mono-telemetry uppercase text-slate-400 tracking-widest">PUBLICATION STUDIO</div>
+          <h2 class="text-2xl text-white font-light">
+            Specifications &amp; Schemas <span class="font-serif-luxury italic text-cyan-300 text-xl font-light">Project Obsidian</span>
+          </h2>
+        </div>
+
+        <div class="flex items-center space-x-2 bg-black/40 p-1.5 rounded-xl border border-white/5 text-xs font-mono-telemetry">
+          <button id="doc-prd" onclick="switchDocTab('prd')" class="px-3 py-1.5 rounded-lg bg-white/10 text-white font-medium">PRD.md</button>
+          <button id="doc-arch" onclick="switchDocTab('arch')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white">architecture.md</button>
+          <button id="doc-flow" onclick="switchDocTab('flow')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white">flow.md</button>
+          <button id="doc-tasks" onclick="switchDocTab('tasks')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white">tasks.md</button>
+        </div>
+
+        <div class="flex space-x-2">
+          <button onclick="copyMasterBundle()" class="px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 text-xs font-mono-telemetry text-white">
+            COPY MASTER IR
+          </button>
+          <button onclick="spawnPR()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-xs font-mono-telemetry text-white font-medium shadow-[0_0_15px_rgba(56,189,248,0.25)]">
+            SPAWN GITHUB PR
+          </button>
+        </div>
+      </div>
+
+      <!-- Document Content Body -->
+      <div id="docContentContainer" class="rounded-xl bg-black/50 border border-white/[0.06] p-6 text-sm font-light leading-relaxed text-slate-300 space-y-4">
+        <!-- Content will be injected dynamically via switchDocTab() -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- VIEW 4: SETTINGS & BYOK VAULT                                             -->
+  <!-- ========================================================================= -->
+  <div id="view-settings" class="view-panel max-w-[1200px] mx-auto w-full space-y-8 pb-24 hidden">
+    <div class="monolith-bezel rounded-2xl p-8 space-y-6">
+      <div class="border-b border-white/[0.06] pb-4">
+        <div class="text-[10px] font-mono-telemetry text-cyan-400 uppercase tracking-widest">BYOK SECURITY VAULT</div>
+        <h2 class="text-2xl text-white font-light">API Keys &amp; Model Routing Settings</h2>
+        <p class="text-xs text-slate-400 font-light mt-1">All keys are stored strictly in local memory and your local encrypted vault. Zero telemetry.</p>
+      </div>
+
+      <div class="space-y-4 max-w-xl">
+        <div class="space-y-1.5">
+          <label class="text-xs font-mono-telemetry uppercase text-slate-300">Groq API Key (Fast STT &amp; LLM LPU)</label>
+          <input id="groqKeyInput" type="password" value="" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-cyan-300 font-mono-telemetry focus:outline-none focus:border-cyan-400" />
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-mono-telemetry uppercase text-slate-300">Local Ollama Endpoint (Air-Gapped Fallback)</label>
+          <input type="text" value="http://localhost:11434" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 font-mono-telemetry focus:outline-none focus:border-cyan-400" />
+        </div>
+
+        <div class="space-y-2 pt-2">
+          <label class="text-xs font-mono-telemetry uppercase text-slate-300">Aesthetic Palette Theme</label>
+          <div class="flex space-x-3">
+            <button onclick="setTheme('sapphire')" class="px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-mono-telemetry">
+              ● Midnight Sapphire (Default)
+            </button>
+            <button onclick="setTheme('amber')" class="px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-400/30 text-orange-300 text-xs font-mono-telemetry hover:bg-orange-500/20">
+              ● Forged Amber
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-4">
+          <button onclick="saveSettings()" class="px-6 py-2.5 rounded-xl bg-white text-black font-semibold text-xs font-mono-telemetry uppercase hover:bg-slate-200 transition-all">
+            Save Vault Settings
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- PHYSICAL FLOATING MILLED ALUMINUM SOUNDWAVE DOCK (Persistent Across Views) -->
+  <!-- ========================================================================= -->
+  <div class="fixed bottom-3 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-lg">
+    <div class="milled-dock rounded-full py-2.5 px-6 flex items-center justify-between text-white">
+      
+      <!-- Record / Play Button -->
+      <button id="dockMicBtn" onclick="toggleMicStream()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 border border-white/20 flex items-center justify-center shadow-inner transition-all">
+        <div id="micStatusIndicator" class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_8px_#38bdf8]"></div>
+      </button>
+
+      <!-- Soundwave Frequency Visualizer -->
+      <div id="waveformContainer" class="flex items-center space-x-1 h-6 px-6">
+        <div class="w-0.5 bg-emerald-400 rounded-full h-2 animate-pulse"></div>
+        <div class="w-0.5 bg-emerald-400 rounded-full h-3 animate-pulse" style="animation-delay: 80ms;"></div>
+        <div class="w-0.5 bg-emerald-300 rounded-full h-5 animate-pulse" style="animation-delay: 160ms;"></div>
+        <div class="w-0.5 bg-cyan-400 rounded-full h-6 animate-pulse" style="animation-delay: 240ms;"></div>
+        <div class="w-0.5 bg-cyan-300 rounded-full h-4 animate-pulse" style="animation-delay: 120ms;"></div>
+        <div class="w-0.5 bg-cyan-400 rounded-full h-2 animate-pulse" style="animation-delay: 200ms;"></div>
+        <div class="w-0.5 bg-indigo-400 rounded-full h-3 animate-pulse" style="animation-delay: 90ms;"></div>
+        <div class="w-0.5 bg-indigo-300 rounded-full h-5 animate-pulse" style="animation-delay: 180ms;"></div>
+        <div class="w-0.5 bg-cyan-300 rounded-full h-4 animate-pulse" style="animation-delay: 140ms;"></div>
+        <div class="w-0.5 bg-emerald-400 rounded-full h-2 animate-pulse"></div>
+      </div>
+
+      <!-- Real-time Timer & Rate -->
+      <div class="text-right">
+        <div id="timerDisplay" class="text-xs font-mono-telemetry font-bold text-white tracking-widest">00:14.2</div>
+        <div id="streamStatus" class="text-[9px] font-mono-telemetry text-slate-400 uppercase">16kHz STREAM</div>
+      </div>
+    </div>
+
+    <!-- Milled Jewel Slit LED -->
+    <div id="jewelSlitLed" class="w-24 h-0.5 mx-auto mt-1 rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-400 jewel-slit opacity-80"></div>
+  </div>
+
+  <!-- Toast Notification Overlay -->
+  <div id="toastNotification" class="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-xl bg-slate-900/90 border border-cyan-400/40 text-xs font-mono-telemetry text-cyan-300 shadow-2xl transition-opacity duration-300 opacity-0 pointer-events-none">
+    Notification text
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- APPLICATION JAVASCRIPT CONTROLLER                                         -->
+  <!-- ========================================================================= -->
+  <script>
+    // 1. Router State Management
+    let currentView = 'studio';
+    function switchView(viewName) {
+      currentView = viewName;
+      document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
+      document.getElementById('view-' + viewName).classList.remove('hidden');
+
+      // Update Header Tab Underlines
+      ['landing', 'studio', 'specs', 'settings'].forEach(v => {
+        const btn = document.getElementById('nav-' + v);
+        if (btn) {
+          if (v === viewName) {
+            btn.classList.add('tab-active');
+          } else {
+            btn.classList.remove('tab-active');
+          }
+        }
+      });
+    }
+
+    // 2. Council Chamber Modal Toggle
+    let isCouncilOpen = true;
+    function toggleCouncilModal() {
+      const modal = document.getElementById('councilModalCard');
+      isCouncilOpen = !isCouncilOpen;
+      if (isCouncilOpen) {
+        modal.classList.remove('hidden');
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function selectSeat(name, model, role) {
+      document.getElementById('selectedSeatDetail').innerText = `${name.toUpperCase()} // MODEL: ${model} // SCOPE: ${role}`;
+    }
+
+    function confirmCouncilRun() {
+      toggleCouncilModal();
+      showToast('Council convened. Running 120B and Qwen 3.6 parallel synthesis.');
+      addLogEntry('Council convened: Hegelian dialectic consensus started.');
+    }
+
+    // 3. Document Studio Content
+    const docData = {
+      prd: `
+        <h3 class="text-lg text-white font-medium">[1.0 EXECUTIVE SUMMARY & VISION]</h3>
+        <p>Vo-Gen-Flow is an autonomous cognitive engineering platform translating spontaneous technical speech into grounded specifications, valid Mermaid topologies, and live GitHub Pull Requests.</p>
+        <h4 class="text-sm font-semibold text-cyan-300 mt-4 uppercase">[2.0 FUNCTIONAL REQUIREMENTS]</h4>
+        <ul class="list-disc pl-5 space-y-1 text-xs font-mono-telemetry text-slate-300">
+          <li>P0: Non-blocking 16kHz audio capture with sub-400ms Whisper LPU transcription.</li>
+          <li>P0: In-memory Okapi BM25 RAG grounding across target codebase ASTs.</li>
+          <li>P0: Task-based multi-model council routing (openai/gpt-oss-120b + qwen/qwen3.6-27b).</li>
+        </ul>
+      `,
+      arch: `
+        <h3 class="text-lg text-white font-medium">[C4 CONTAINER ARCHITECTURE SPECIFICATION]</h3>
+        <p>Decoupled multi-tier presentation, orchestration, and model dispatch layer.</p>
+        <pre class="bg-black/80 rounded-lg p-4 font-mono-telemetry text-xs text-cyan-300 mt-2 border border-white/10">
+CREATE TABLE public.voice_workflows (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id VARCHAR(64) NOT NULL REFERENCES public.sessions(id),
+    prd_spec TEXT,
+    c4_diagram TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);</pre>
+      `,
+      flow: `
+        <h3 class="text-lg text-white font-medium">[SYSTEM LIFECYCLE & SEQUENCE EXECUTION]</h3>
+        <p>Acoustic Stream -> PortAudio -> Whisper LPU -> Query Decomposition -> BM25 Grounding -> Parallel MoE Dispatch -> Consensus Diffs.</p>
+      `,
+      tasks: `
+        <h3 class="text-lg text-white font-medium">[ENGINEERING ACTION CHECKLIST]</h3>
+        <div class="space-y-2 font-mono-telemetry text-xs text-slate-300 mt-2">
+          <div><input type="checkbox" checked class="mr-2 accent-cyan-400"> Phase 1: Deploy in-memory Okapi BM25 indexer [Verified]</div>
+          <div><input type="checkbox" checked class="mr-2 accent-cyan-400"> Phase 2: Groq Whisper LPU client with sub-second STT [Verified]</div>
+          <div><input type="checkbox" checked class="mr-2 accent-cyan-400"> Phase 3: Multi-Model Council router (120B + Qwen3.6) [Verified]</div>
+          <div><input type="checkbox" class="mr-2 accent-cyan-400"> Phase 4: Tauri v2 desktop package &amp; global Cmd+Shift+V hotkey</div>
+        </div>
+      `
+    };
+
+    function switchDocTab(tabKey) {
+      ['prd', 'arch', 'flow', 'tasks'].forEach(t => {
+        const b = document.getElementById('doc-' + t);
+        if (b) {
+          if (t === tabKey) {
+            b.classList.add('bg-white/10', 'text-white');
+            b.classList.remove('text-slate-400');
+          } else {
+            b.classList.remove('bg-white/10', 'text-white');
+            b.classList.add('text-slate-400');
+          }
+        }
+      });
+      document.getElementById('docContentContainer').innerHTML = docData[tabKey];
+    }
+
+    // 4. Audio Streaming Simulator / Real Mic
+    let isStreaming = true;
+    let timerSeconds = 14.2;
+    let timerInterval = null;
+
+    function toggleMicStream() {
+      isStreaming = !isStreaming;
+      const indicator = document.getElementById('micStatusIndicator');
+      const statusLabel = document.getElementById('streamStatus');
+
+      if (isStreaming) {
+        indicator.classList.remove('bg-slate-500');
+        indicator.classList.add('bg-cyan-400');
+        statusLabel.innerText = '16kHz STREAM';
+        startTimer();
+        showToast('Microphone stream active: 16,000 Hz Mono.');
+      } else {
+        indicator.classList.remove('bg-cyan-400');
+        indicator.classList.add('bg-slate-500');
+        statusLabel.innerText = 'PAUSED';
+        clearInterval(timerInterval);
+        showToast('Microphone stream paused.');
+      }
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timerSeconds += 0.1;
+        document.getElementById('timerDisplay').innerText = formatTime(timerSeconds);
+      }, 100);
+    }
+
+    function formatTime(s) {
+      const mins = Math.floor(s / 60).toString().padStart(2, '0');
+      const secs = (s % 60).toFixed(1).padStart(4, '0');
+      return `${mins}:${secs}`;
+    }
+
+    // 5. Node Inspector
+    function inspectNode(title, detail) {
+      showToast(`Inspecting: ${title} // ${detail}`);
+      addLogEntry(`Node inspected: ${title}`);
+    }
+
+    // 6. Project Switching
+    function switchProject(name) {
+      document.getElementById('studioProjectTitle').innerText = `${name} // C4 TOPOLOGY VGF-89`;
+      showToast(`Switched active workspace to: ${name}`);
+      addLogEntry(`Switched context to project: ${name}`);
+    }
+
+    // 7. Toast & Logging
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      toast.innerText = msg;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 3000);
+    }
+
+    function addLogEntry(text) {
+      const log = document.getElementById('projectLogContainer');
+      if (log) {
+        const time = new Date().toLocaleTimeString();
+        const div = document.createElement('div');
+        div.innerHTML = `<span class="text-slate-500">${time}</span> ${text}`;
+        log.prepend(div);
+      }
+    }
+
+    function copyMasterBundle() {
+      showToast('Copied Zero-Shot Intermediate Representation (master_execution_bundle.md)!');
+      addLogEntry('Master IR bundle serialized to clipboard.');
+    }
+
+    function spawnPR() {
+      showToast('Autonomous Git branch created & Pull Request dispatched.');
+      addLogEntry('Dispatched headless subagent to open GitHub Pull Request.');
+    }
+
+    function exportGit() {
+      showToast('Exported specifications directly to local git branch.');
+      addLogEntry('Files committed to local repository.');
+    }
+
+    function exportPDF() {
+      showToast('Compiling 30-Page Master PDF documentation...');
+      addLogEntry('PDF compiler triggered for VoGenFlow_Master_Documentation.pdf.');
+    }
+
+    function saveSettings() {
+      showToast('Vault credentials securely saved to local memory.');
+      addLogEntry('BYOK Vault configuration updated.');
+    }
+
+    function setTheme(theme) {
+      const body = document.getElementById('appBody');
+      if (theme === 'amber') {
+        body.classList.add('theme-amber');
+        showToast('Activated Forged Amber aesthetic palette.');
+      } else {
+        body.classList.remove('theme-amber');
+        showToast('Activated Midnight Sapphire aesthetic palette.');
+      }
+    }
+
+    // 8. Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey && e.target.tagName !== 'INPUT') {
+        toggleCouncilModal();
+      }
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('councilModalCard');
+        if (modal && !modal.classList.contains('hidden')) {
+          toggleCouncilModal();
+        }
+      }
+    });
+
+    // Initialize Default View & Content
+    startTimer();
+    switchDocTab('prd');
+  </script>
+</body>
+</html>
