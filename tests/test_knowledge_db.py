@@ -60,6 +60,33 @@ class TestCuratedKnowledgeDB(unittest.TestCase):
         prod_db = CuratedKnowledgeDB()
         self.assertGreaterEqual(len(prod_db.templates), 5)
 
+    def test_all_curated_templates_retrievable(self):
+        prod_db = CuratedKnowledgeDB()
+        for tmpl in prod_db.templates:
+            tmpl_id = tmpl["id"]
+            keywords = " ".join(tmpl.get("keywords", [])[:3])
+            results = prod_db.search(keywords, top_k=1)
+            self.assertGreaterEqual(len(results), 1)
+            self.assertEqual(results[0]["id"], tmpl_id, f"Template {tmpl_id} failed top-1 retrieval with query: '{keywords}'")
+
+    def test_bm25_empty_and_oov_queries(self):
+        prod_db = CuratedKnowledgeDB()
+        res_empty = prod_db.search("", top_k=2)
+        self.assertEqual(len(res_empty), 2)
+        res_oov = prod_db.search("zzzyyyqqqnonexistentterm999", top_k=2)
+        self.assertEqual(len(res_oov), 2)
+        self.assertEqual(res_oov[0]["relevance_score"], 0.0)
+
+    def test_format_for_prompt_xml_tags(self):
+        prod_db = CuratedKnowledgeDB()
+        xml_output = prod_db.format_for_prompt("fastapi backend", top_k=2)
+        self.assertTrue(xml_output.startswith("<curated_engineering_knowledge>"))
+        self.assertTrue(xml_output.endswith("</curated_engineering_knowledge>"))
+        self.assertIn("<template id=", xml_output)
+        self.assertIn("<description>", xml_output)
+        self.assertIn("<reference_snippet><![CDATA[", xml_output)
+        self.assertIn("]]></reference_snippet>", xml_output)
+
 
 if __name__ == "__main__":
     unittest.main()
