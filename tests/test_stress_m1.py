@@ -3,6 +3,7 @@
 import os
 import time
 import shutil
+import logging
 import statistics
 import tempfile
 import unittest
@@ -342,7 +343,15 @@ class TestFastOfflineDeliberationP95Latency(unittest.TestCase):
 
     def setUp(self):
         os.environ["VOGENFLOW_OFFLINE_MODE"] = "1"
+        import gc
+        gc.collect()
+        time.sleep(0.05)
+        self._orig_level = logging.getLogger("vogenflow").level
+        logging.getLogger("vogenflow").setLevel(logging.WARNING)
         self.engine = CouncilEngine()
+
+    def tearDown(self):
+        logging.getLogger("vogenflow").setLevel(self._orig_level)
 
     def test_50_iterations_p95_under_30ms(self):
         """Run 50 sequential council deliberations in offline mode and verify P95 < 0.03s."""
@@ -398,8 +407,8 @@ class TestFastOfflineDeliberationP95Latency(unittest.TestCase):
 
         self.assertLess(
             p95,
-            0.060,
-            f"P95 offline deliberation latency ({p95*1000:.2f}ms / {p95:.5f}s) exceeded 60ms SLA threshold!"
+            0.030,
+            f"P95 offline deliberation latency ({p95*1000:.2f}ms / {p95:.5f}s) exceeded 30ms SLA threshold!"
         )
 
 
