@@ -130,9 +130,9 @@ class CuratedKnowledgeDB:
         for item in results:
             output.append(f"  <template id=\"{item.get('id')}\" title=\"{item.get('title')}\">")
             output.append(f"    <description>{item.get('description')}</description>")
-            output.append("    <reference_snippet>")
+            output.append("    <reference_snippet><![CDATA[")
             output.append(item.get("snippet", "").strip())
-            output.append("    </reference_snippet>")
+            output.append("    ]]></reference_snippet>")
             output.append("  </template>")
         output.append("</curated_engineering_knowledge>")
         return "\n".join(output)

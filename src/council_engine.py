@@ -15,7 +15,7 @@ logger = logging.getLogger("vogenflow.council_engine")
 
 COUNCIL_PRESETS = {
     "standard": {
-        "name": "Standard Monolith Council (5-Seat)",
+        "name": "Standard Monolith Council (6-Seat)",
         "roles": ["pm_agent", "architect_agent", "ui_agent", "systems_agent", "agile_agent", "diff_agent"],
         "description": "Balanced architectural deliberation covering Strategy, C4 DDL, UI/UX, Lifecycle, and Agile plan."
     },
@@ -44,7 +44,7 @@ class CouncilEngine:
         self.router = model_router or ModelRouter()
         self.knowledge_db = knowledge_db or CuratedKnowledgeDB()
         self.rag_engine = rag_engine
-        self.output_dir = Path(Config.DOCS_DIR)
+        self.output_dir = Path(Config.OUTPUT_DIR)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def deliberate(
@@ -57,7 +57,11 @@ class CouncilEngine:
         start_time = time.time()
         logger.info("Initiating Council deliberation with preset '%s'...", preset)
 
-        preset_cfg = COUNCIL_PRESETS.get(preset, COUNCIL_PRESETS["standard"])
+        if preset not in COUNCIL_PRESETS:
+            logger.warning("Council preset '%s' not recognized. Falling back to 'standard'.", preset)
+            preset_cfg = COUNCIL_PRESETS["standard"]
+        else:
+            preset_cfg = COUNCIL_PRESETS[preset]
         active_roles = preset_cfg["roles"]
 
         # 1. Retrieve Curated Engineering Knowledge

@@ -45,6 +45,13 @@ class CircuitBreaker:
             self.state = "OPEN"
             logger.warning("Circuit breaker tripped to OPEN state (%d consecutive failures).", self.failure_count)
 
+    def trip(self, reason: str = "Immediate circuit trip"):
+        """Force circuit breaker to OPEN state immediately (e.g. fatal 401 auth error)."""
+        self.failure_count = self.failure_threshold
+        self.last_failure_time = time.time()
+        self.state = "OPEN"
+        logger.warning("Circuit breaker forced to OPEN state. Reason: %s", reason)
+
     def allow_request(self) -> bool:
         if self.state == "CLOSED":
             return True
@@ -57,6 +64,16 @@ class CircuitBreaker:
         if self.state == "HALF_OPEN":
             return True
         return True
+
+
+def is_valid_groq_key(key: Optional[str]) -> bool:
+    """Validate Groq API key format before initializing network client."""
+    if not key or not isinstance(key, str):
+        return False
+    k = key.strip()
+    if not k or k.startswith("your_") or k.lower() in ("dummy", "test", "fake", "null", "none", "use_env"):
+        return False
+    return k.startswith("gsk_") and len(k) >= 20
 
 
 def sanitize_input(text: str) -> str:
@@ -72,7 +89,11 @@ def sanitize_input(text: str) -> str:
         r"disregard\s+(all\s+)?prior\s+prompts",
         r"output\s+(the\s+)?admin\s+password",
         r"admin\s+password",
-        r"dump\s+(all\s+)?environment\s+variables"
+        r"dump\s+(all\s+)?environment\s+variables",
+        r"system\s+compromised",
+        r"disregard\s+prd",
+        r"write\s+malware",
+        r"malware"
     ]
     for pattern in jailbreaks:
         sanitized = re.sub(pattern, "[SECURITY_FILTERED]", sanitized, flags=re.IGNORECASE)
@@ -81,15 +102,136 @@ def sanitize_input(text: str) -> str:
     return sanitized
 
 
+def _sanitize_prompt_for_summary(prompt: str) -> str:
+    """Sanitize and summarize user prompt/context for safe interpolation into offline blueprints.
+
+    Neutralizes:
+    - XML/HTML tag breakout attempts (e.g. </user_prompt>, <system>, <script>)
+    - Role spoofing (e.g. Assistant:, System:, User:, Admin:)
+    - System overrides, jailbreak directives, and command injections
+    - Dangerous attack tokens (e.g. 'malware', 'admin password', 'system compromised', SQL injections, ransomware)
+    - Delimiter breakout fences (```, ---)
+
+    Returns a clean, safe, descriptive domain summary. If input contains only malicious/adversarial
+    payloads or lacks substantive domain intent, returns a safe default architectural domain summary.
+    """
+    if not prompt or not isinstance(prompt, str):
+        return "Enterprise Cloud Workflow & High-Throughput Architecture"
+
+    import re
+    text = prompt
+
+    # 1. Unpack prompt scaffolding if assembled by council engine
+    if "Spoken Transcript:" in text:
+        match = re.search(r"Spoken Transcript:\s*(.*?)(?:\n\nCurated Knowledge:|\n\nWorkspace Context:|$)", text, re.DOTALL)
+        if match:
+            text = match.group(1).strip()
+    elif "PRD Context:" in text:
+        match = re.search(r"PRD Context:\s*(.*?)(?:\n\nReference Architecture Snippet:|$)", text, re.DOTALL)
+        if match:
+            text = match.group(1).strip()
+    elif "Council Artifacts Summary:" in text:
+        match = re.search(r"### PRD\.md\s*(.*?)(?:\n### |$)", text, re.DOTALL)
+        if match:
+            text = match.group(1).strip()
+
+    # 2. Strip XML/HTML tags (delimiter breakout protection)
+    text = re.sub(r"</?[a-zA-Z0-9_\:\-]+[^>]*>", " ", text)
+
+    # 3. Strip markdown code fences, headers, and horizontal delimiter rules
+    text = re.sub(r"```[\w]*", " ", text)
+    text = re.sub(r"^\s*[-=_*#]{2,}\s*$", " ", text, flags=re.MULTILINE)
+
+    # 4. Strip role impersonation prefixes
+    text = re.sub(r"\b(?:Assistant|System|User|Admin|Human|AI|Operator|Root)\s*:\s*", " ", text, flags=re.IGNORECASE)
+
+    # 5. Targeted neutralization of jailbreak/injection directives & harmful keywords
+    threat_patterns = [
+        r"\b(?:ignore|disregard|forget|bypass|override)\s+(?:all\s+)?(?:previous|prior|system|safety|security)?\s*(?:instructions?|prompts?|rules?|guardrails?|prd)?\b",
+        r"\bdisregard\s+(?:the\s+)?prd\b",
+        r"\bsystem\s+(?:compromised|override|failure|halt|reboot|shutdown)\b",
+        r"\bsecurity\s+override\b",
+        r"\b(?:write|create|generate|distribute|execute|deploy|install)\s+(?:malware|ransomware|spyware|trojan|virus|exploit|backdoor|rootkit)\b",
+        r"\b(?:malware|ransomware|spyware|trojan|rootkit|keylogger|backdoor|botnet|cryptominer)\b",
+        r"\b(?:output|show|print|leak|reveal|dump|exfiltrate|steal)\s+(?:the\s+)?(?:admin\s+)?(?:passwords?|secrets?|tokens?|credentials?|api[_\s]keys?|private[_\s]keys?|env(?:ironment)?\s+vars?)\b",
+        r"\badmin\s+passwords?\b",
+        r"\bmaster\s+passwords?\b",
+        r"\broot\s+passwords?\b",
+        r"\bdump\s+(?:all\s+)?(?:environment\s+variables|env\s+vars?|secrets?|database|tables?)\b",
+        r"\b(?:dump|reveal|leak|exfiltrate)\s+(?:all\s+)?(?:and\s+)?(?:secrets?|passwords?|credentials?)\b",
+        r"\b(?:wipe|encrypt|destroy|corrupt)\s+(?:the\s+)?(?:database|disk|hard\s*drive|files?|system)\b",
+        r"\bselect\s+\*\s+from\s+\w+\b",
+        r"\bdrop\s+(?:table|database|schema)\b",
+        r"\bdelete\s+from\s+\w+\b",
+        r"\binsert\s+into\s+\w+\b",
+        r"\balert\s*\([^\)]*\)",
+        r"\b<script\b",
+        r"\bxss\b",
+    ]
+    for pat in threat_patterns:
+        text = re.sub(pat, " ", text, flags=re.IGNORECASE)
+
+    # 6. Normalize punctuation & remove dangling conjunctions/prepositions
+    text = re.sub(r"[\r\n\t]+", " ", text)
+    text = re.sub(r"[^\w\s\-\.,/]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip(" -.,;:_")
+
+    text = re.sub(r"^(?:and|or|but|with|to|for|the|a|an)\s+", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+(?:and|or|but|with|to|for|the|a|an)$", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s*,\s*(?:and|or|but)\s*$", "", text, flags=re.IGNORECASE)
+    text = text.strip(" -.,;:_")
+
+    # 7. Check if meaningful legitimate domain keywords remain (>= 2 substantial words)
+    words = [
+        w for w in re.findall(r"[a-zA-Z]{3,}", text)
+        if w.lower() not in {"and", "the", "for", "with", "from", "all", "out", "put", "system", "assistant", "user", "disregard", "provide", "instructions", "deploy"}
+    ]
+    if len(words) < 2:
+        return "Enterprise Cloud Workflow & High-Throughput Architecture"
+
+    # 8. Clean length truncation
+    if len(text) > 150:
+        truncated = text[:150].rsplit(" ", 1)[0]
+        text = truncated + "..."
+
+    return text
+
+
 class ModelRouter:
     """Routes generation requests to task-specific models on Groq with rate pacing and fallback."""
 
-    def __init__(self, api_key: Optional[str] = "USE_ENV", min_request_interval: float = 2.0):
-        if api_key == "USE_ENV":
-            self.api_key = Config.GROQ_API_KEY
+    def __init__(
+        self,
+        api_key: Optional[str] = "USE_ENV",
+        min_request_interval: float = 2.0,
+        offline_mode: Optional[bool] = None,
+        max_retries: int = 3,
+        retry_backoff: float = 2.0
+    ):
+        # Resolve offline mode flag
+        if offline_mode is not None:
+            self.offline_mode = bool(offline_mode)
         else:
-            self.api_key = api_key
+            env_val = os.getenv("VOGENFLOW_OFFLINE_MODE", "0").lower()
+            self.offline_mode = env_val in ("1", "true", "yes", "on") or getattr(Config, "OFFLINE_MODE", False)
+
+        # Resolve API key
+        if api_key == "USE_ENV":
+            raw_key = Config.GROQ_API_KEY
+        else:
+            raw_key = api_key
+
+        # Early key validation
+        if raw_key and is_valid_groq_key(raw_key) and not self.offline_mode:
+            self.api_key = raw_key.strip()
+        else:
+            self.api_key = None
+            if raw_key and not is_valid_groq_key(raw_key):
+                logger.info("Provided Groq API key failed format check. Operating in offline mode.")
+
         self.min_request_interval = min_request_interval
+        self.max_retries = max_retries
+        self.retry_backoff = retry_backoff
         self.last_request_time = 0.0
         self.circuit_breaker = CircuitBreaker()
         self.telemetry = {
@@ -102,7 +244,10 @@ class ModelRouter:
             "calls_per_model": {}
         }
         self.groq_client = None
-        self._init_client()
+        if not self.offline_mode and self.api_key:
+            self._init_client()
+        else:
+            logger.info("ModelRouter running in local offline / simulation mode.")
 
     def _init_client(self):
         """Initialize the Groq client if API key is present."""
@@ -146,7 +291,11 @@ class ModelRouter:
         self.telemetry["calls_per_role"][role] = self.telemetry["calls_per_role"].get(role, 0) + 1
         self.telemetry["calls_per_model"][model] = self.telemetry["calls_per_model"].get(model, 0) + 1
 
-        # Enforce rate-limit pacing
+        # Fast-path for explicit offline mode: bypass rate pacing and remote call
+        if self.offline_mode:
+            return self._fallback_generate(role, model, system_prompt, user_prompt, start_time)
+
+        # Enforce rate-limit pacing for active remote calls or configured pacing
         self._enforce_rate_pacing()
 
         # Check circuit breaker and client availability
@@ -155,9 +304,9 @@ class ModelRouter:
                            bool(self.groq_client), self.circuit_breaker.state)
             return self._fallback_generate(role, model, system_prompt, user_prompt, start_time)
 
-        # Attempt up to 3 retries with exponential backoff for HTTP 429
-        max_retries = 3
-        backoff = 2.0
+        # Attempt up to max_retries with exponential backoff for HTTP 429
+        max_retries = self.max_retries
+        backoff = self.retry_backoff
         last_error = None
 
         for attempt in range(max_retries):
@@ -197,15 +346,21 @@ class ModelRouter:
                 last_error = err_str
                 logger.warning("Groq call attempt %d failed for role '%s' on %s: %s", attempt + 1, role, model, err_str)
 
-                # Check for rate limit error (429) vs authentication error (401)
+                # Check for authentication error (401)
                 if "401" in err_str or "invalid_api_key" in err_str:
-                    logger.warning("Groq authentication failed (401 Invalid Key). Aborting retries.")
-                    self.circuit_breaker.record_failure()
+                    logger.warning("Groq authentication failed (401 Invalid Key). Tripping circuit breaker immediately.")
+                    self.circuit_breaker.trip("Fatal 401 Invalid Key")
+                    self.groq_client = None  # Prevent subsequent attempts with bad key
                     break
-                elif "429" in err_str or "rate_limit" in err_str.lower():
-                    time.sleep(backoff)
-                    backoff *= 2.0
-                    continue
+                elif "429" in err_str or "rate_limit" in err_str.lower() or "413" in err_str:
+                    if attempt < max_retries - 1:
+                        time.sleep(backoff)
+                        backoff *= 2.0
+                        continue
+                    else:
+                        # 429 Retry exhaustion: record failure on circuit breaker
+                        self.circuit_breaker.record_failure()
+                        break
                 else:
                     self.circuit_breaker.record_failure()
                     break
@@ -238,23 +393,23 @@ class ModelRouter:
             "status": "fallback_success"
         }
 
-
     def _synthesize_offline_blueprint(self, role: str, prompt: str) -> str:
         """Generate structured deterministic blueprint section based on role."""
-        safe_prompt = sanitize_input(prompt)
+        domain_summary = _sanitize_prompt_for_summary(prompt)
         if role == "pm_agent":
             return (
                 f"# Product Requirements Document (PRD)\n\n"
                 f"## 1. Executive Summary\n"
-                f"Autonomous engineering workflow synthesized for the requested architecture domain.\n\n"
+                f"Autonomous engineering workflow synthesized for {domain_summary}.\n\n"
                 f"## 2. Target Personas\n"
                 f"- Principal Architects & Tech Leads\n- Full-Stack Engineers\n\n"
                 f"## 3. Key Requirements\n"
                 f"- [P0] Sub-second voice ingestion & diarization\n"
-                f"- [P0] Multi-model council deliberation\n"
+                f"- [P0] Multi-model council deliberation for {domain_summary}\n"
                 f"- [P1] Automated Git Pull Request creation\n\n"
                 f"## 4. Threat Model (STRIDE)\n"
-                f"- Zero API key leakage; strict local storage in BYOK vault."
+                f"- Zero API key leakage; strict local storage in BYOK vault.\n"
+                f"- Prompt injection & delimiter breakout resistance verified."
             )
         elif role == "architect_agent":
             return (
@@ -265,7 +420,7 @@ class ModelRouter:
                 f"    API --> Council[\"Multi-Model Council\"]\n"
                 f"    Council --> DB[(\"PostgreSQL / Local Store\")]\n"
                 f"```\n\n"
-                f"## Database DDL\n"
+                f"## Database DDL for {domain_summary}\n"
                 f"```sql\n"
                 f"CREATE TABLE IF NOT EXISTS projects (\n"
                 f"    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n"
@@ -281,7 +436,7 @@ class ModelRouter:
                 f"- Background: `#010308` (Obsidian deep)\n"
                 f"- Accent: `#38bdf8` (Sapphire cyan)\n"
                 f"- Borders: Hairline 1px `#1e293b`\n\n"
-                f"## Component Hierarchy\n"
+                f"## Component Hierarchy for {domain_summary}\n"
                 f"- `StudioLayout` -> `MonolithCanvas` + `AmbientVoiceDock`"
             )
         elif role == "systems_agent":
@@ -303,7 +458,7 @@ class ModelRouter:
         elif role == "agile_agent":
             return (
                 f"# Agile Delivery Plan & Task Checklist\n\n"
-                f"## Milestone 1: Core Foundation\n"
+                f"## Milestone 1: Core Foundation for {domain_summary}\n"
                 f"- [ ] `[NEW] src/model_router.py`: Verified multi-model dispatch\n"
                 f"- [ ] `[NEW] src/council_engine.py`: DAG execution\n\n"
                 f"## Milestone 2: WebSocket Streaming\n"
@@ -312,7 +467,7 @@ class ModelRouter:
         else:
             return (
                 f"# Master Execution Bundle Synthesis\n\n"
-                f"Consolidated technical blueprint for downstream execution agents.\n"
+                f"Consolidated technical blueprint for downstream execution agents ({domain_summary}).\n"
                 f"Target verification: `python -m unittest discover tests`"
             )
 
