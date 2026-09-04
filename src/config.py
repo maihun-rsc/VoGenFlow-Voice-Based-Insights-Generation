@@ -34,8 +34,8 @@ AUDIO_CHUNK_SIZE = int(os.getenv("AUDIO_CHUNK_SIZE", "1024"))
 
 # LLM / Insight Generation Configuration
 DEFAULT_LLM_PROVIDER = os.getenv("DEFAULT_LLM_PROVIDER", "groq")  # 'groq' | 'ollama'
-DEFAULT_GROQ_LLM_MODEL = os.getenv("DEFAULT_GROQ_LLM_MODEL", "llama-3.3-70b-versatile")
-DEFAULT_OLLAMA_MODEL = os.getenv("DEFAULT_OLLAMA_MODEL", "llama3.2:latest")
+DEFAULT_GROQ_LLM_MODEL = os.getenv("DEFAULT_GROQ_LLM_MODEL", "openai/gpt-oss-120b")
+DEFAULT_OLLAMA_MODEL = os.getenv("DEFAULT_OLLAMA_MODEL", "qwen2.5-coder:latest")
 
 # RAG Configuration
 DEFAULT_RAG_TOP_K = int(os.getenv("DEFAULT_RAG_TOP_K", "4"))
