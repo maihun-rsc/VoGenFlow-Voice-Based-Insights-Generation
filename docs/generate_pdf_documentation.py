@@ -248,6 +248,9 @@ def generate_master_pdf(output_pdf_path: str):
         ("rules.md", "Chapter 7: Engineering Rules & Code Standards"),
         ("Test_Checklists_and_Rollback.md", "Chapter 8: QA Test Checklists & Rollback Procedures"),
         ("comparison.md", "Chapter 9: Market Comparison, Positioning & Commercialization"),
+        ("VoGenFlow_V2_Master_Implementation_Plan.md", "Chapter 10: Master 4-Phase Engineering Implementation Plan"),
+        ("Council_Master_Prompt.md", "Chapter 11: Multi-Model AI Council Master Specification"),
+        ("Feasibility_and_Unit_Economics.md", "Chapter 12: Commercial Feasibility & SaaS Margin Analysis"),
     ]
 
     doc = SimpleDocTemplate(
@@ -434,6 +437,9 @@ def generate_master_pdf(output_pdf_path: str):
         "7. Engineering Rules (rules.md) — Coding conventions, signal processing &amp; prompt standards",
         "8. QA Test Checklists &amp; Rollback (Test_Checklists_and_Rollback.md) — Test cases &amp; disaster recovery",
         "9. Market Comparison &amp; Commercialization (comparison.md) — Wispr Flow analysis &amp; SaaS unit economics",
+        "10. Master Engineering Plan (VoGenFlow_V2_Master_Implementation_Plan.md) — 4-phase execution roadmap",
+        "11. Council Master Specification (Council_Master_Prompt.md) — Multi-agent roles &amp; dialectic prompt",
+        "12. Feasibility &amp; Unit Economics (Feasibility_and_Unit_Economics.md) — 5k-10k user cost &amp; 99.98% margin",
     ]
 
     for item in toc_items:

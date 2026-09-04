@@ -1,0 +1,16 @@
+[package]
+name = "vogenflow-desktop"
+version = "2.0.0"
+description = "Vo-Gen-Flow Native Monolith Studio Desktop Shell"
+authors = ["maihun-rsc <rananjaychauhan93@gmail.com>"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0", features = [] }
+tauri-plugin-global-shortcut = "2.0"
+tauri-plugin-shell = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

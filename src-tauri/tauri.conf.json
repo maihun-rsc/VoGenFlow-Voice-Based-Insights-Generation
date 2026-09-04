@@ -1,0 +1,51 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-cli/schema.json",
+  "productName": "Vo-Gen-Flow",
+  "version": "2.0.0",
+  "identifier": "com.vogenflow.desktop",
+  "build": {
+    "frontendDist": "../frontend_demo.html",
+    "devUrl": "http://localhost:8000"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Vo-Gen-Flow // Monolith Studio",
+        "width": 1360,
+        "height": 900,
+        "minWidth": 1080,
+        "minHeight": 720,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "transparent": false,
+        "center": true,
+        "theme": "Dark"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com ws://localhost:8000 http://localhost:8000"
+    }
+  },
+  "plugins": {
+    "global-shortcut": {
+      "shortcuts": [
+        {
+          "trigger": "CommandOrControl+Shift+V",
+          "action": "toggle_recording"
+        }
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

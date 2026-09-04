@@ -46,3 +46,25 @@ def has_groq_key() -> bool:
     """Check if a valid Groq API key is present."""
     key = os.getenv("GROQ_API_KEY", "")
     return bool(key and key.strip() and not key.startswith("your_"))
+
+
+class Config:
+    """Class wrapper for configuration attributes."""
+    BASE_DIR = BASE_DIR
+    OUTPUT_DIR = OUTPUT_DIR
+    DOCS_DIR = DOCS_DIR
+    TEMP_AUDIO_DIR = TEMP_AUDIO_DIR
+    GROQ_API_KEY = GROQ_API_KEY
+    OLLAMA_HOST = OLLAMA_HOST
+    DEFAULT_STT_PROVIDER = DEFAULT_STT_PROVIDER
+    DEFAULT_GROQ_STT_MODEL = DEFAULT_GROQ_STT_MODEL
+    AUDIO_SAMPLE_RATE = AUDIO_SAMPLE_RATE
+    AUDIO_CHANNELS = AUDIO_CHANNELS
+    AUDIO_CHUNK_SIZE = AUDIO_CHUNK_SIZE
+    DEFAULT_LLM_PROVIDER = DEFAULT_LLM_PROVIDER
+    DEFAULT_GROQ_LLM_MODEL = DEFAULT_GROQ_LLM_MODEL
+    DEFAULT_OLLAMA_MODEL = DEFAULT_OLLAMA_MODEL
+    DEFAULT_RAG_TOP_K = DEFAULT_RAG_TOP_K
+    CHUNK_SIZE = CHUNK_SIZE
+    CHUNK_OVERLAP = CHUNK_OVERLAP
+    has_groq_key = staticmethod(has_groq_key)

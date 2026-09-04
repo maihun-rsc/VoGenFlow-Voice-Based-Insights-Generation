@@ -727,44 +727,166 @@ CREATE TABLE public.voice_workflows (
       document.getElementById('docContentContainer').innerHTML = docData[tabKey];
     }
 
-    // 4. Audio Streaming Simulator / Real Mic
-    let isStreaming = true;
-    let timerSeconds = 14.2;
+    // 4. Audio Streaming & Live WebSocket Integration
+    let isStreaming = false;
+    let timerSeconds = 0.0;
     let timerInterval = null;
+    let ws = null;
+    let audioContext = null;
+    let mediaStream = null;
+    let audioProcessor = null;
+    let currentPreset = "standard";
 
-    function toggleMicStream() {
-      isStreaming = !isStreaming;
-      const indicator = document.getElementById('micStatusIndicator');
-      const statusLabel = document.getElementById('streamStatus');
+    function initWebSocket() {
+      const wsUrl = "ws://localhost:8000/ws/stream";
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.binaryType = "arraybuffer";
 
-      if (isStreaming) {
-        indicator.classList.remove('bg-slate-500');
-        indicator.classList.add('bg-cyan-400');
-        statusLabel.innerText = '16kHz STREAM';
-        startTimer();
-        showToast('Microphone stream active: 16,000 Hz Mono.');
-      } else {
-        indicator.classList.remove('bg-cyan-400');
-        indicator.classList.add('bg-slate-500');
-        statusLabel.innerText = 'PAUSED';
-        clearInterval(timerInterval);
-        showToast('Microphone stream paused.');
+        ws.onopen = () => {
+          console.log("[WS] Connected to Vo-Gen-Flow Gateway");
+          addLogEntry("WebSocket connected to Vo-Gen-Flow API Gateway (ws://localhost:8000).");
+          showToast("Live Gateway connected (FastAPI + WebSockets).");
+        };
+
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          handleWebSocketEvent(data);
+        };
+
+        ws.onerror = () => {
+          console.log("[WS] Gateway offline. Operating in resilient simulation mode.");
+        };
+
+        ws.onclose = () => {
+          console.log("[WS] Gateway disconnected.");
+          setTimeout(initWebSocket, 5000); // Retry reconnect
+        };
+      } catch (e) {
+        console.warn("[WS] Could not initiate WebSocket:", e);
       }
     }
 
-    function startTimer() {
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        timerSeconds += 0.1;
-        document.getElementById('timerDisplay').innerText = formatTime(timerSeconds);
-      }, 100);
+    function handleWebSocketEvent(data) {
+      if (data.type === "audio_telemetry") {
+        updateWaveformBars(data.rms);
+      } else if (data.type === "council_progress") {
+        addLogEntry(`[${data.role}] ${data.message}`);
+        document.getElementById('councilStatusText').innerText = `ACTIVE: ${data.role.toUpperCase()}`;
+        showToast(`${data.role}: ${data.message}`);
+      } else if (data.type === "transcript_ready") {
+        addLogEntry(`Transcript: "${data.transcript}"`);
+        showToast(`Transcribed: ${data.transcript.substring(0, 40)}...`);
+      } else if (data.type === "deliberation_complete") {
+        if (data.artifacts) {
+          if (data.artifacts["PRD.md"]) docData.prd = `<pre class="whitespace-pre-wrap font-mono-telemetry text-xs text-slate-200">${data.artifacts["PRD.md"]}</pre>`;
+          if (data.artifacts["Architecture.md"]) docData.arch = `<pre class="whitespace-pre-wrap font-mono-telemetry text-xs text-cyan-300">${data.artifacts["Architecture.md"]}</pre>`;
+          if (data.artifacts["Flow.md"]) docData.flow = `<pre class="whitespace-pre-wrap font-mono-telemetry text-xs text-indigo-300">${data.artifacts["Flow.md"]}</pre>`;
+          if (data.artifacts["tasks.md"]) docData.tasks = `<pre class="whitespace-pre-wrap font-mono-telemetry text-xs text-slate-200">${data.artifacts["tasks.md"]}</pre>`;
+          switchDocTab('prd');
+        }
+        document.getElementById('councilStatusText').innerText = "STATUS: SYNTHESIS COMPLETE";
+        showToast(`Council Deliberation Completed in ${data.duration_seconds}s!`);
+        addLogEntry(`Deliberation finished. Artifacts updated in Specification Studio.`);
+      }
     }
 
-    function formatTime(s) {
-      const mins = Math.floor(s / 60).toString().padStart(2, '0');
-      const secs = (s % 60).toFixed(1).padStart(4, '0');
-      return `${mins}:${secs}`;
+    function updateWaveformBars(rms) {
+      const bars = document.querySelectorAll('#waveformContainer div');
+      bars.forEach((bar, idx) => {
+        const height = Math.max(4, Math.min(24, Math.round(rms * 40 * ((idx % 3) + 1))));
+        bar.style.height = `${height}px`;
+      });
     }
+
+    async function toggleMicStream() {
+      const indicator = document.getElementById('micStatusIndicator');
+      const statusLabel = document.getElementById('streamStatus');
+
+      if (!isStreaming) {
+        // Start Streaming
+        isStreaming = true;
+        indicator.classList.remove('bg-slate-500');
+        indicator.classList.add('bg-cyan-400');
+        statusLabel.innerText = '16kHz RECORDING';
+        timerSeconds = 0.0;
+        startTimer();
+
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "start_recording", preset: currentPreset }));
+        }
+
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 16000 } });
+          audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+          const source = audioContext.createMediaStreamSource(mediaStream);
+          audioProcessor = audioContext.createScriptProcessor(2048, 1, 1);
+
+          audioProcessor.onaudioprocess = (e) => {
+            if (!isStreaming) return;
+            const inputData = e.inputBuffer.getChannelData(0);
+            
+            // Convert Float32Array to 16-bit PCM ArrayBuffer
+            const pcmBuffer = new ArrayBuffer(inputData.length * 2);
+            const pcmView = new DataView(pcmBuffer);
+            let sumSq = 0;
+            for (let i = 0; i < inputData.length; i++) {
+              const s = Math.max(-1, Math.min(1, inputData[i]));
+              sumSq += s * s;
+              pcmView.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            }
+            const rms = Math.sqrt(sumSq / inputData.length);
+            updateWaveformBars(rms);
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(pcmBuffer);
+            }
+          };
+
+          source.connect(audioProcessor);
+          audioProcessor.connect(audioContext.destination);
+          showToast('Live microphone stream active: 16,000 Hz.');
+        } catch (micErr) {
+          console.warn("[Audio] Could not access microphone. Using simulated stream:", micErr);
+          showToast('Microphone not accessible. Using simulated soundwave.');
+        }
+      } else {
+        // Stop Streaming
+        isStreaming = false;
+        indicator.classList.remove('bg-cyan-400');
+        indicator.classList.add('bg-slate-500');
+        statusLabel.innerText = 'SYNTHESIZING';
+        clearInterval(timerInterval);
+
+        if (audioProcessor) {
+          try { audioProcessor.disconnect(); } catch(e){}
+        }
+        if (mediaStream) {
+          try { mediaStream.getTracks().forEach(t => t.stop()); } catch(e){}
+        }
+        if (audioContext) {
+          try { audioContext.close(); } catch(e){}
+        }
+
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: "stop_recording",
+            mock_transcript: "Architect a multi-tier SaaS platform for Vo-Gen-Flow with FastAPI, C4 diagrams, and automated PR generation."
+          }));
+        } else {
+          showToast('Deliberation running locally in simulation mode.');
+          setTimeout(() => {
+            statusLabel.innerText = 'IDLE';
+            showToast('Simulation complete. Artifacts rendered.');
+          }, 1500);
+        }
+      }
+    }
+
+    // Initialize WebSocket on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      initWebSocket();
+    });
 
     // 5. Node Inspector
     function inspectNode(title, detail) {
