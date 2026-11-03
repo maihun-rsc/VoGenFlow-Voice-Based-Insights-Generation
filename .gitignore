@@ -1,4 +1,4 @@
-# Byte-compiled / optimized / DLL files
+﻿# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -62,3 +62,36 @@ $RECYCLE.BIN/
 ORIGINAL_REQUEST.md
 docs/sessions/
 output/sessions/
+
+# --- Anti-Vibe Governance Rules ---
+tempCodeRunnerFile.*
+test_adversarial_*
+*.docx
+*.pptx
+*.log
+*.jsonl
+node_modules/
+.venv/
+
+BUILD.md
+AGENTS.md
+antigravity.md
+Memory.md
+Decisions.md
+Flow.md
+Rules.md
+Phases.md
+Repos.md
+
+
+# --- Private Developer & AI Engine Blueprints (Local Only) ---
+/BUILD.md
+/AGENTS.md
+/antigravity.md
+/Memory.md
+/Decisions.md
+/Flow.md
+/Rules.md
+/Phases.md
+/Repos.md
+/.agents/
