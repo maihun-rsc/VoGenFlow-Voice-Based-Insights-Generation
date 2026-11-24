@@ -158,6 +158,9 @@ class STTService:
                 audio_path, model=model, language=language, prompt=context_prompt
             )
 
+    # Alias for API compatibility
+    transcribe = transcribe_file
+
     @staticmethod
     def get_supported_formats() -> list[str]:
         return [".wav", ".mp3", ".m4a", ".ogg", ".flac", ".webm", ".mp4", ".mpeg", ".mpga"]

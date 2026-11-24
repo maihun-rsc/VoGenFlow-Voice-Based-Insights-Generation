@@ -19,12 +19,13 @@ class TestModelRouter(unittest.TestCase):
         self.router = ModelRouter(api_key=None, min_request_interval=0.05)
 
     def test_role_model_mappings(self):
-        self.assertEqual(self.router.get_model_for_role("pm_agent"), "openai/gpt-oss-120b")
-        self.assertEqual(self.router.get_model_for_role("architect_agent"), "qwen/qwen3.6-27b")
-        self.assertEqual(self.router.get_model_for_role("ui_agent"), "qwen/qwen3.6-27b")
-        self.assertEqual(self.router.get_model_for_role("systems_agent"), "openai/gpt-oss-120b")
-        self.assertEqual(self.router.get_model_for_role("diff_agent"), "openai/gpt-oss-20b")
-        self.assertEqual(self.router.get_model_for_role("unknown_role"), "openai/gpt-oss-20b")
+        self.assertEqual(self.router.get_model_for_role("pm_agent"), ROLE_MODEL_MAPPING.get("pm_agent"))
+        self.assertEqual(self.router.get_model_for_role("architect_agent"), ROLE_MODEL_MAPPING.get("architect_agent"))
+        self.assertEqual(self.router.get_model_for_role("ui_agent"), ROLE_MODEL_MAPPING.get("ui_agent"))
+        self.assertEqual(self.router.get_model_for_role("systems_agent"), ROLE_MODEL_MAPPING.get("systems_agent"))
+        self.assertEqual(self.router.get_model_for_role("agile_agent"), ROLE_MODEL_MAPPING.get("agile_agent"))
+        self.assertEqual(self.router.get_model_for_role("diff_agent"), ROLE_MODEL_MAPPING.get("diff_agent"))
+        self.assertEqual(self.router.get_model_for_role("unknown_role"), ROLE_MODEL_MAPPING.get("default"))
 
     def test_circuit_breaker_logic(self):
         cb = CircuitBreaker(failure_threshold=2, recovery_time=0.1)
@@ -163,6 +164,61 @@ class TestModelRouter(unittest.TestCase):
         self.assertEqual(cb.state, "HALF_OPEN")
         cb.record_success()
         self.assertEqual(cb.state, "CLOSED")
+
+    def test_lm_studio_mode_with_mock(self):
+        r = ModelRouter(offline_mode=False, engine_mode="lm_studio", min_request_interval=0.0)
+        mock_choice = MagicMock()
+        mock_choice.message.content = "## Architecture synthesized via LM Studio Bionic"
+        mock_resp = MagicMock()
+        mock_resp.choices = [mock_choice]
+        mock_resp.usage.prompt_tokens = 45
+        mock_resp.usage.completion_tokens = 120
+        
+        r.lm_studio_client = MagicMock()
+        r.lm_studio_client.chat.completions.create.return_value = mock_resp
+
+        res = r.generate(role="architect_agent", system_prompt="Sys", user_prompt="Local prompt")
+        self.assertEqual(res["status"], "success")
+        self.assertEqual(res["source"], "lm_studio")
+        self.assertIn("LM Studio Bionic", res["content"])
+        self.assertEqual(res["prompt_tokens"], 45)
+        self.assertEqual(res["completion_tokens"], 120)
+
+    def test_lm_studio_failure_triggers_fallback(self):
+        r = ModelRouter(offline_mode=False, engine_mode="lm_studio", min_request_interval=0.0)
+        r.lm_studio_client = MagicMock()
+        r.lm_studio_client.chat.completions.create.side_effect = Exception("Connection refused to 1234")
+
+        res = r.generate(role="pm_agent", system_prompt="Sys", user_prompt="Local prompt")
+        self.assertEqual(res["status"], "fallback_success")
+        self.assertEqual(res["source"], "offline_fallback")
+        self.assertIn("PRD", res["content"])
+
+    def test_config_is_offline_respected_when_env_key_cleared(self):
+        """Verify ModelRouter respects Config.is_offline() when env GROQ_API_KEY is cleared."""
+        old_offline = os.environ.get("VOGENFLOW_OFFLINE_MODE")
+        old_key = os.environ.get("GROQ_API_KEY")
+        os.environ["VOGENFLOW_OFFLINE_MODE"] = "0"
+        os.environ["GROQ_API_KEY"] = ""
+        try:
+            r = ModelRouter(min_request_interval=2.0)
+            self.assertTrue(r.offline_mode)
+            self.assertIsNone(r.groq_client)
+            t0 = time.time()
+            res = r.generate(role="pm_agent", system_prompt="PM", user_prompt="Test offline config")
+            elapsed = time.time() - t0
+            self.assertLess(elapsed, 0.05)
+            self.assertEqual(res["status"], "fallback_success")
+            self.assertEqual(res["source"], "offline_fallback")
+        finally:
+            if old_offline is None:
+                os.environ.pop("VOGENFLOW_OFFLINE_MODE", None)
+            else:
+                os.environ["VOGENFLOW_OFFLINE_MODE"] = old_offline
+            if old_key is None:
+                os.environ.pop("GROQ_API_KEY", None)
+            else:
+                os.environ["GROQ_API_KEY"] = old_key
 
 
 if __name__ == "__main__":

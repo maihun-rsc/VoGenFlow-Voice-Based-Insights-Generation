@@ -1,20 +1,12 @@
 {
-  "version": "2.0.0",
-  "updated_at": "2026-09-04T10:00:00Z",
+  "version": "2.1.0",
+  "updated_at": "2026-10-15T00:00:00Z",
   "templates": [
     {
       "id": "fastapi_async_service",
       "category": "backend",
       "keywords": [
-        "fastapi",
-        "rest",
-        "api",
-        "backend",
-        "async",
-        "service",
-        "lifespan",
-        "router",
-        "endpoint"
+        "fastapi", "rest", "api", "backend", "async", "service", "lifespan", "router", "endpoint", "websocket", "http"
       ],
       "title": "Production FastAPI Async Microservice with Lifespan",
       "description": "Battle-tested async FastAPI application structure with lifespan management, structured JSON error handling, CORS, and dependency injection.",
@@ -24,16 +16,7 @@
       "id": "postgresql_ddl_relational",
       "category": "database",
       "keywords": [
-        "postgres",
-        "postgresql",
-        "sql",
-        "ddl",
-        "schema",
-        "table",
-        "foreign key",
-        "relational",
-        "database",
-        "rls"
+        "postgres", "postgresql", "sql", "ddl", "schema", "table", "foreign key", "relational", "database", "rls", "uuid", "index"
       ],
       "title": "PostgreSQL Multi-Tenant Relational Schema with RLS & Indices",
       "description": "Production PostgreSQL DDL with UUID keys, foreign key constraints, created_at/updated_at timestamps, composite indices on tenant_id, and Row-Level Security.",
@@ -43,15 +26,7 @@
       "id": "shadcn_tailwind_dashboard",
       "category": "frontend",
       "keywords": [
-        "react",
-        "frontend",
-        "shadcn",
-        "tailwind",
-        "ui",
-        "component",
-        "dashboard",
-        "lucide",
-        "radix"
+        "react", "frontend", "shadcn", "tailwind", "ui", "component", "dashboard", "lucide", "radix", "vellum", "monolith"
       ],
       "title": "Shadcn / Tailwind Responsive Studio Card with Ambient Glow",
       "description": "React 19 + Tailwind v4 accessible component with hairline border, obsidian dark styling, and stateful interaction.",
@@ -61,14 +36,7 @@
       "id": "celery_redis_worker",
       "category": "worker",
       "keywords": [
-        "celery",
-        "redis",
-        "background",
-        "queue",
-        "worker",
-        "async",
-        "job",
-        "task"
+        "celery", "redis", "background", "queue", "worker", "async", "job", "task", "bullmq", "distributed"
       ],
       "title": "Celery with Redis Broker Background Queue Architecture",
       "description": "High-throughput asynchronous background job dispatcher with retry backoff and progress tracking.",
@@ -78,13 +46,7 @@
       "id": "c4_mermaid_architecture",
       "category": "architecture",
       "keywords": [
-        "mermaid",
-        "c4",
-        "architecture",
-        "diagram",
-        "flowchart",
-        "sequence",
-        "graph"
+        "mermaid", "c4", "architecture", "diagram", "flowchart", "sequence", "graph", "topology", "container"
       ],
       "title": "Safe C4 Container Architecture Diagram (Mermaid)",
       "description": "Clean, syntactically safe C4 container flow with escaped labels and distinct styling classes.",
@@ -94,17 +56,111 @@
       "id": "master_bundle_ir",
       "category": "compiler",
       "keywords": [
-        "bundle",
-        "ir",
-        "intermediate representation",
-        "claude code",
-        "antigravity",
-        "prompt",
-        "code generation"
+        "bundle", "ir", "intermediate representation", "claude code", "antigravity", "prompt", "code generation"
       ],
       "title": "Zero-Shot Intermediate Representation (IR) Master Execution Bundle",
       "description": "The standardized Markdown format that autonomous coding agents consume to write complete codebase implementations without human interaction.",
       "snippet": "# MASTER EXECUTION BUNDLE: [FEATURE_NAME]\n\n## 1. Architectural Scope & Target Files\n- `[NEW] path/to/file.py`: Core implementation logic\n- `[NEW] tests/test_file.py`: Unit test verification\n\n## 2. Low-Level Implementation Contracts\n\n### File: `path/to/file.py`\n```python\n# Complete, compilable source code\n```\n\n## 3. Automated Verification Checklist\n- [ ] Run test suite: `python -m unittest tests/test_file.py`\n- [ ] Verify zero syntax errors and 100% test pass rate\n"
+    },
+    {
+      "id": "webrtc_voice_streaming",
+      "category": "realtime",
+      "keywords": [
+        "webrtc", "voice", "audio", "streaming", "realtime", "sfu", "sdp", "ice", "turn", "peer", "microphone", "opus", "pcm"
+      ],
+      "title": "WebRTC Low-Latency Real-Time Voice & Media Pipeline",
+      "description": "Sub-100ms real-time audio ingest and streaming pipeline using WebRTC data channels and peer connections.",
+      "snippet": "class WebRTCAudioBridge:\n    \"\"\"Manages low-latency WebRTC audio tracks and PCM frames for speech recognition.\"\"\"\n    def __init__(self, sample_rate: int = 16000):\n        self.sample_rate = sample_rate\n        self.active_tracks = {}\n\n    async def handle_offer(self, sdp_offer: str) -> str:\n        # Negotiate SDP and set up remote audio track receiving\n        return 'sdp_answer_payload'\n"
+    },
+    {
+      "id": "kafka_event_streaming",
+      "category": "messaging",
+      "keywords": [
+        "kafka", "event", "streaming", "pubsub", "distributed", "partition", "consumer", "producer", "broker", "event-driven"
+      ],
+      "title": "Apache Kafka Event-Driven Architecture & Consumer Group",
+      "description": "Resilient event streaming with idempotency, partition key ordering, and dead-letter queues.",
+      "snippet": "from aiokafka import AIOKafkaProducer, AIOKafkaConsumer\nimport json\n\nasync def create_event_producer(bootstrap_servers: str = 'localhost:9092'):\n    producer = AIOKafkaProducer(\n        bootstrap_servers=bootstrap_servers,\n        value_serializer=lambda v: json.dumps(v).encode('utf-8'),\n        enable_idempotence=True\n    )\n    await producer.start()\n    return producer\n"
+    },
+    {
+      "id": "kubernetes_microservice_helm",
+      "category": "devops",
+      "keywords": [
+        "kubernetes", "k8s", "helm", "docker", "deployment", "ingress", "pod", "cluster", "microservice", "hpa", "cloud"
+      ],
+      "title": "Kubernetes Microservice Deployment with Ingress and HPA",
+      "description": "Production Kubernetes YAML manifests with resource limits, readiness probes, and Horizontal Pod Autoscaling.",
+      "snippet": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: vogenflow-gateway\nspec:\n  replicas: 3\n  template:\n    spec:\n      containers:\n      - name: gateway\n        image: vogenflow/gateway:latest\n        ports:\n        - containerPort: 8080\n        resources:\n          limits:\n            cpu: \"1000m\"\n            memory: \"512Mi\"\n"
+    },
+    {
+      "id": "graphql_federation_gateway",
+      "category": "api",
+      "keywords": [
+        "graphql", "apollo", "federation", "schema", "query", "mutation", "resolver", "subgraph", "api"
+      ],
+      "title": "GraphQL Apollo Federation Unified Gateway",
+      "description": "Distributed GraphQL gateway unifying multiple subgraph schemas into a single client endpoint.",
+      "snippet": "type User @key(fields: \"id\") {\n  id: ID!\n  name: String!\n  email: String!\n}\n\ntype Query {\n  me: User\n  session(id: ID!): ArchitectureSession\n}\n"
+    },
+    {
+      "id": "oauth2_jwt_rbac",
+      "category": "security",
+      "keywords": [
+        "oauth2", "jwt", "auth", "rbac", "authentication", "authorization", "security", "token", "claims", "permission"
+      ],
+      "title": "OAuth2 with JWT Bearer Tokens & Role-Based Access Control",
+      "description": "Stateless token verification with cryptographic signing, token revocation, and role enforcement.",
+      "snippet": "from datetime import datetime, timedelta, timezone\nimport jwt\n\nSECRET_KEY = 'YOUR_SECRET_KEY'\nALGORITHM = 'HS256'\n\ndef create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=60)):\n    to_encode = data.copy()\n    expire = datetime.now(timezone.utc) + expires_delta\n    to_encode.update({'exp': expire})\n    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)\n"
+    },
+    {
+      "id": "redis_cache_aside_lock",
+      "category": "caching",
+      "keywords": [
+        "redis", "cache", "lock", "ttl", "distributed lock", "invalidation", "fast", "cache-aside"
+      ],
+      "title": "Redis Cache-Aside Pattern with Distributed Lock",
+      "description": "High-throughput Redis cache-aside wrapper preventing dogpiling with redlock concurrency control.",
+      "snippet": "async def get_or_set_cache(redis_client, key: str, fetch_func, ttl_seconds: int = 300):\n    cached = await redis_client.get(key)\n    if cached:\n        return cached\n    fresh = await fetch_func()\n    await redis_client.set(key, fresh, ex=ttl_seconds)\n    return fresh\n"
+    },
+    {
+      "id": "cqrs_event_sourcing",
+      "category": "architecture",
+      "keywords": [
+        "cqrs", "event sourcing", "command", "query", "projection", "event store", "domain", "aggregate"
+      ],
+      "title": "CQRS Command/Query Separation with Event Sourcing Store",
+      "description": "Decoupled write-side aggregate root storing immutable domain events and read-side projection views.",
+      "snippet": "class DomainEvent:\n    def __init__(self, aggregate_id: str, event_type: str, payload: dict):\n        self.aggregate_id = aggregate_id\n        self.event_type = event_type\n        self.payload = payload\n"
+    },
+    {
+      "id": "stripe_billing_subscription",
+      "category": "billing",
+      "keywords": [
+        "stripe", "billing", "subscription", "webhook", "saas", "payment", "invoice", "checkout"
+      ],
+      "title": "Stripe SaaS Subscription & Webhook Lifecycle Manager",
+      "description": "Idempotent Stripe webhook receiver verifying HMAC signatures and updating subscription status.",
+      "snippet": "import stripe\nfrom fastapi import Request, HTTPException\n\nasync def handle_stripe_webhook(request: Request, webhook_secret: str):\n    payload = await request.body()\n    sig_header = request.headers.get('stripe-signature')\n    event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)\n    return {'status': 'processed', 'event_type': event['type']}\n"
+    },
+    {
+      "id": "vector_pgvector_rag",
+      "category": "ai",
+      "keywords": [
+        "pgvector", "vector", "embedding", "rag", "postgres", "cosine", "similarity", "hnsw", "search"
+      ],
+      "title": "PostgreSQL pgvector Semantic Search with HNSW Index",
+      "description": "Vector storage in PostgreSQL enabling hybrid dense/sparse search over code and documentation chunks.",
+      "snippet": "CREATE EXTENSION IF NOT EXISTS vector;\n\nCREATE TABLE IF NOT EXISTS document_embeddings (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    content TEXT NOT NULL,\n    embedding vector(768),\n    metadata JSONB DEFAULT '{}'::jsonb\n);\n\nCREATE INDEX ON document_embeddings USING hnsw (embedding vector_cosine_ops);\n"
+    },
+    {
+      "id": "websocket_typewriter_stream",
+      "category": "realtime",
+      "keywords": [
+        "websocket", "stream", "typewriter", "sse", "realtime", "telemetry", "progress", "chunks"
+      ],
+      "title": "WebSocket Real-Time Typewriter Progress Stream",
+      "description": "Bidirectional WebSocket connection delivering live agent progress events, token metrics, and audio frames.",
+      "snippet": "async def stream_progress(websocket, step_name: str, message: str, tokens: int):\n    await websocket.send_json({\n        'type': 'progress',\n        'step': step_name,\n        'message': message,\n        'tokens': tokens\n    })\n"
     }
   ]
 }

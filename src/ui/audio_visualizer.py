@@ -17,6 +17,7 @@ class AudioVisualizer(QWidget):
         self.levels = [0.0] * num_bars
         self.target_level = 0.0
         self.is_active = False
+        self.theme = "onyx"
 
         self.setMinimumHeight(48)
         self.setMaximumHeight(80)
@@ -25,6 +26,11 @@ class AudioVisualizer(QWidget):
         self.decay_timer = QTimer(self)
         self.decay_timer.timeout.connect(self._update_decay)
         self.decay_timer.start(30)
+
+    def set_theme(self, theme: str):
+        """Set visualizer palette: 'onyx' or 'vellum'."""
+        self.theme = theme.lower()
+        self.update()
 
     def set_level(self, normalized_level: float):
         """Update current audio amplitude (0.0 to 1.0)."""
@@ -71,8 +77,11 @@ class AudioVisualizer(QWidget):
         width = self.width()
         height = self.height()
 
-        # Background
-        painter.fillRect(self.rect(), QColor(20, 24, 30))
+        # Background based on theme
+        if self.theme == "vellum":
+            painter.fillRect(self.rect(), QColor(241, 238, 231))
+        else:
+            painter.fillRect(self.rect(), QColor(14, 14, 16))
 
         if width <= 0 or height <= 0:
             return
@@ -81,9 +90,14 @@ class AudioVisualizer(QWidget):
         gap = (width / self.num_bars) * 0.3
 
         gradient = QLinearGradient(0, height, 0, 0)
-        gradient.setColorAt(0.0, QColor(41, 128, 185))   # Blue
-        gradient.setColorAt(0.5, QColor(46, 204, 113))   # Green
-        gradient.setColorAt(1.0, QColor(231, 76, 60))    # Red on peak
+        if self.theme == "vellum":
+            gradient.setColorAt(0.0, QColor(184, 134, 11))   # Bronze Gold
+            gradient.setColorAt(0.6, QColor(217, 119, 6))    # Amber
+            gradient.setColorAt(1.0, QColor(194, 65, 12))    # Terracotta on peak
+        else:
+            gradient.setColorAt(0.0, QColor(212, 175, 55))   # Monolith Gold
+            gradient.setColorAt(0.6, QColor(245, 158, 11))   # Amber
+            gradient.setColorAt(1.0, QColor(239, 68, 68))    # Crimson on peak
 
         brush = QBrush(gradient)
         painter.setBrush(brush)

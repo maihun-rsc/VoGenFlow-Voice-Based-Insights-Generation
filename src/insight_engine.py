@@ -61,6 +61,21 @@ class InsightEngine:
                 max_completion_tokens=4096,
             )
             return response.choices[0].message.content or ""
+        elif self.provider in ("lm_studio", "lmstudio"):
+            url = f"{self.ollama_host.rstrip('/')}/chat/completions"
+            payload = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "temperature": 0.2,
+                "max_tokens": 4096,
+            }
+            res = requests.post(url, json=payload, timeout=120)
+            res.raise_for_status()
+            data = res.json()
+            return data["choices"][0]["message"]["content"]
         elif self.provider == "ollama":
             url = f"{self.ollama_host}/api/generate"
             payload = {

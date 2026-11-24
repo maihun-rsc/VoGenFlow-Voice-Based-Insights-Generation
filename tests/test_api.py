@@ -105,6 +105,16 @@ class TestAPIServer(unittest.TestCase):
         self.assertGreaterEqual(len(query_data["citations"]), 1)
         self.assertEqual(query_data["citations"][0]["file"], "billing_spec.md")
 
+    def test_engine_status_endpoint(self):
+        res = self.client.get("/api/engine/status")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn("active_engine", data)
+        self.assertIn("groq", data)
+        self.assertIn("lm_studio", data)
+        self.assertIn("url", data["lm_studio"])
+        self.assertIn("reachable", data["lm_studio"])
+
 
 if __name__ == "__main__":
     unittest.main()

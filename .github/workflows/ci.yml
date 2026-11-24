@@ -1,0 +1,56 @@
+name: CI / Repository Integrity & Test Suite
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  code-integrity-audit:
+    name: Repository Integrity & Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 1. Root Directory Hygiene Audit
+        run: |
+          echo "Auditing root directory hygiene..."
+          POLLUTED_FILES=$(find . -maxdepth 1 -type f \( -name "*.docx" -o -name "*.pptx" -o -name "*.png" -o -name "*.jpg" -o -name "tempCodeRunnerFile.*" -o -name "*_GUIDE.md" \) | grep -v "^\.$" || true)
+          if [ -n "$POLLUTED_FILES" ]; then
+            echo "❌ FAILED: Root directory contains loose assets or presentation files:"
+            echo "$POLLUTED_FILES"
+            echo "Relocate design assets to assets/, documentation to docs/, and remove scratch files."
+            exit 1
+          fi
+          echo "✅ Root directory is clean."
+
+      - name: 2. Exception Handling & Syntax Audit
+        run: |
+          echo "Checking for unhandled or swallowed exceptions in source code..."
+          SWALLOWED=$(grep -rnE "except(\s+Exception)?\s*:\s*(pass|return\s+f?['\"]Error)" src/ || true)
+          if [ -n "$SWALLOWED" ]; then
+            echo "❌ FAILED: Detected swallowed exception patterns:"
+            echo "$SWALLOWED"
+            echo "Ensure exceptions are logged with stack traces or raised as typed domain errors."
+            exit 1
+          fi
+          echo "✅ No swallowed exceptions detected."
+
+      - name: 3. Run Deterministic Unit Tests (Tier 1)
+        run: |
+          if [ -d "tests/unit" ] && [ "$(ls -A tests/unit)" ]; then
+            python -m pip install --upgrade pip
+            pip install pytest hypothesis pydantic
+            if [ -f "requirements.txt" ]; then pip install -r requirements.txt || true; fi
+            pytest tests/unit -v
+          else
+            echo "ℹ️ No unit tests found in tests/unit. Skipping."
+          fi

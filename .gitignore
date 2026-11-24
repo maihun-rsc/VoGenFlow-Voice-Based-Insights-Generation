@@ -62,6 +62,8 @@ $RECYCLE.BIN/
 ORIGINAL_REQUEST.md
 docs/sessions/
 output/sessions/
+output/*.db*
+
 
 # --- Anti-Vibe Governance Rules ---
 tempCodeRunnerFile.*

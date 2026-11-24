@@ -58,8 +58,9 @@ class AudioRecorder:
             self._frames.append(indata.copy())
 
         # Calculate Root Mean Square (RMS) amplitude for UI visualizer
-        if self.amplitude_callback:
-            rms = float(np.sqrt(np.mean(indata**2)))
+        if self.amplitude_callback and indata is not None and indata.size > 0:
+            mean_sq = float(np.mean(indata**2))
+            rms = float(np.sqrt(max(0.0, mean_sq)))
             # Normalize to approximate 0.0 - 1.0 range
             normalized = min(1.0, rms * 10.0)
             try:
